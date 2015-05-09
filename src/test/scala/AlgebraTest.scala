@@ -12,5 +12,5 @@ object AlgebraTest extends App {
   val i2 = Vector(Nat(3))
   val v = i2.point(2.0)
   val v2 = i.add(v, v)
-  print(fun2[({type λ[α] = Vector[Succ[Succ[Succ[_0]]], α]})#λ, Double](v2))
+  print(fun2(v2))
 }
