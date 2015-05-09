@@ -1,6 +1,10 @@
 package CML.Algebra
 
+/**
+ * An archimedean local field.
+ */
 trait Analytic[T] extends Field[T] {
+  def abs(x: T): T
   def exp(x: T): T
   def log(x: T): T
   def sqrt(x: T): T

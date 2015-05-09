@@ -6,9 +6,13 @@ import shapeless.ops.nat.ToInt
 import scalaz.syntax.applicative._
 import scalaz.{Applicative, Functor}
 
-object Sized {
-  def apply(size: Int): Sized[Nat] =
-    new Sized()(new ToInt[Nat] { def apply(): Int = size })
+object Size {
+  def apply(size: Int): Size[Nat] =
+    Size()(new ToInt[Nat] { def apply(): Int = size })
+}
+
+case class Size[S <: Nat] (implicit size: ToInt[S]) {
+  def apply() = size()
 }
 
 case class Sized[S <: Nat] (implicit size: ToInt[S]) {
@@ -30,4 +34,10 @@ case class Sized[S <: Nat] (implicit size: ToInt[S]) {
   ) {
     override def toString() = vec.toString()
   }
+}
+
+
+object Sized {
+  def apply[S <: Nat](n: S)(implicit size: ToInt[S]): Sized[S] =
+    new Sized()(size)
 }

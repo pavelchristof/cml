@@ -13,6 +13,7 @@ object Real {
     override def div(x: Double, y: Double): Double = x / y
     override def inv(x: Double): Double = 1 / x
 
+    override def abs(x: Double): Double = math.abs(x)
     override def exp(x: Double): Double = math.exp(x)
     override def log(x: Double): Double = math.log(x)
     override def sqrt(x: Double): Double = math.sqrt(x)
