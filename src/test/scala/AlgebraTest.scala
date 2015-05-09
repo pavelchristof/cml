@@ -9,6 +9,8 @@ object AlgebraTest extends App {
   println(fun[Double](2))
 
   implicit val i = Vector(Nat(3))
-  val v = i.point(2.0)
-  print(fun2(v)(i, DoubleField))
+  val i2 = Vector(Nat(3))
+  val v = i2.point(2.0)
+  val v2 = i.add(v, v)
+  print(fun2[({type λ[α] = Vector[Succ[Succ[Succ[_0]]], α]})#λ, Double](v2))
 }

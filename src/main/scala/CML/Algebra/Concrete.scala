@@ -6,6 +6,7 @@ trait AnalyticMap {
 
 trait Concrete[V[_]] extends Normed[V] {
   def map[F](g: AnalyticMap)(v: V[F])(implicit f: Analytic[F]): V[F]
+  def dim: Int
   
   def exp[F](x: V[F])(implicit f: Analytic[F]): V[F] = map(new AnalyticMap {
     override def apply[F](x: F)(implicit f: Analytic[F]): F = f.exp(x)
