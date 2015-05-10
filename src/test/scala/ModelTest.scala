@@ -1,3 +1,4 @@
+import cml.algebra.traits.AnalyticMap
 import cml.models._
 import cml.algebra
 import cml.algebra.Real._
@@ -10,9 +11,11 @@ object ModelTest extends App {
   implicit val vecHidden = algebra.Vector(Nat(20))
   implicit val vecOut = algebra.Vector(Nat(2))
 
-  implicit val model = Chain(
+  val model = Chain4(
     LinearMap[vecIn.Type, vecHidden.Type],
-    LinearMap[vecHidden.Type, vecOut.Type]
+    Pointwise[vecHidden.Type](AnalyticMap.sigmoid),
+    LinearMap[vecHidden.Type, vecOut.Type],
+    Pointwise[vecOut.Type](AnalyticMap.sigmoid)
   )
 
   val rng = new Random()

@@ -53,7 +53,7 @@ class VectorImpl[S <: Nat](implicit size: ToInt[S])
     apply2(u, v)(f.mul).foldLeft(f.zero)(f.add)
 
   override def dim: Int = size()
-  override def map[F](g: AnalyticMap)(v: Vector[S, F])(implicit f: Analytic[F]): Vector[S, F] = v.map(g(_))
+  override def pointwise[F](g: AnalyticMap)(v: Vector[S, F])(implicit f: Analytic[F]): Vector[S, F] = v.map(g(_))
 }
 
 object Vector {
