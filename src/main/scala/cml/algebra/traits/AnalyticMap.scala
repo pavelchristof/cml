@@ -5,6 +5,14 @@ trait AnalyticMap {
 }
 
 object AnalyticMap {
+  val abs = new AnalyticMap {
+    override def apply[F](x: F)(implicit f: Analytic[F]): F = f.abs(x)
+  }
+
+  val signum = new AnalyticMap {
+    override def apply[F](x: F)(implicit f: Analytic[F]): F = f.signum(x)
+  }
+
   val exp = new AnalyticMap {
     override def apply[F](x: F)(implicit f: Analytic[F]): F = f.exp(x)
   }

@@ -52,8 +52,28 @@ class VectorImpl[S <: Nat](implicit size: ToInt[S])
   override def dot[F](u: Vector[S, F], v: Vector[S, F])(implicit f: Field[F]): F =
     apply2(u, v)(f.mul).foldLeft(f.zero)(f.add)
 
+  /**
+   * Find the coefficient of the i-th basis vector.
+   */
+  override def index[F](v: Vector[S, F])(i: Int)(implicit r: Field[F]): F =
+    v.vec(i)
+
+  /**
+   * Construct a vector using given coefficients for the orthonormal basis.
+   */
+  override def tabulate[F](f: (Int) => F)(implicit r: Field[F]): Vector[S, F] =
+    Vector(collection.immutable.Vector.tabulate(dim)(f(_)))
+
+  /**
+   * The dimension of this vector space.
+   */
   override def dim: Int = size()
+
+  /**
+   * Applies a function pointwise on the coordinates of the vector.
+   */
   override def pointwise[F](g: AnalyticMap)(v: Vector[S, F])(implicit f: Analytic[F]): Vector[S, F] = v.map(g(_))
+
 }
 
 object Vector {

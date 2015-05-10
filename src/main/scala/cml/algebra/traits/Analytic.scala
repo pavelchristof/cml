@@ -1,10 +1,14 @@
 package cml.algebra.traits
 
+import cml.syntax.AnalyticSyntax
+
 /**
  * Real or complex numbers.
  */
 trait Analytic[T] extends Field[T] {
   def abs(x: T): T
+  def signum(x: T): T
+
   def exp(x: T): T
   def log(x: T): T
   def sqrt(x: T): T
@@ -20,4 +24,6 @@ trait Analytic[T] extends Field[T] {
   def sinh(x: T): T
   def cosh(x: T): T
   def tanh(x: T): T
+
+  val analyticSyntax = new AnalyticSyntax[T] { def F = Analytic.this }
 }
