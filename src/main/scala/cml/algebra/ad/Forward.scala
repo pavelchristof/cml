@@ -6,7 +6,6 @@ object Forward extends Engine {
   type Aug[F] = (F, F)
 
   private class AugField[F](implicit f: Field[F]) extends Field[Aug[F]] {
-
     import f.fieldSyntax._
 
     override val zero: Aug[F] =
@@ -29,7 +28,6 @@ object Forward extends Engine {
   }
 
   private class AugAnalytic[F](implicit f: Analytic[F]) extends AugField[F] with Analytic[Aug[F]] {
-
     import f.analyticSyntax._
 
     override def abs(x: Aug[F]): Aug[F] =
@@ -118,7 +116,7 @@ object Forward extends Engine {
       (implicit field: Field[F], concrete: Concrete[V]): V[F] =
     concrete.tabulate(i => {
       val input = concrete.tabulate(j =>
-        (concrete.index(x)(i), if (i == j) field.one else field.zero))(this.field)
+        (concrete.index(x)(i), if (i == j) field.one else field.zero))
       f(input)._2
     })
 
@@ -127,7 +125,7 @@ object Forward extends Engine {
    */
   override def gradWithValue[F, V[_]](f: (V[Aug[F]]) => Aug[F])(x: V[F])
       (implicit field: Field[F], concrete: Concrete[V]): (F, V[F]) = {
-    val value = f(concrete.tabulate(i => (concrete.index(x)(i), field.zero))(this.field))._1
+    val value = f(concrete.tabulate(i => (concrete.index(x)(i), field.zero)))._1
     (value, grad(f)(x))
   }
 }

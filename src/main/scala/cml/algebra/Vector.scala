@@ -4,7 +4,7 @@ import cml.algebra.traits._
 import shapeless.Nat
 import shapeless.ops.nat.ToInt
 import scalaz.std.AllInstances._
-import scalaz.{Traverse, Applicative, Zip}
+import scalaz.{Monoid, Traverse, Applicative, Zip}
 
 case class Vector[+S <: Nat, +A] (
   vec: scala.collection.immutable.Vector[A]
@@ -18,7 +18,7 @@ class VectorImpl[S <: Nat](implicit size: ToInt[S])
   type Type[a] = Vector[S, a]
 
   def from[A](vec: Seq[A]): Option[Vector[S, A]] =
-    if (vec.size == dim) {
+    if (vec.size == dim()) {
       Some(Vector(vec.toVector))
     } else {
       None
@@ -29,19 +29,19 @@ class VectorImpl[S <: Nat](implicit size: ToInt[S])
   override def zip[A, B](a: => Vector[S, A], b: => Vector[S, B]): Vector[S, (A, B)] = new Vector(a.vec.zip(b.vec))
 
   override def map[A, B](fa: Vector[S, A])(f: (A) => B): Vector[S, B] = Vector[S, B](fa.vec.map(f))
-  override def point[A](a: => A): Vector[S, A] = new Vector(scala.collection.immutable.Vector.fill(dim)(a))
+  override def point[A](a: => A): Vector[S, A] = new Vector(scala.collection.immutable.Vector.fill(dim())(a))
   override def ap[A, B](fa: => Vector[S, A])(f: => Vector[S, (A) => B]): Vector[S, B] =
     zip(fa, f).map(x => x._2(x._1))
   override def traverseImpl[G[_], A, B](fa: Vector[S, A])(f: (A) => G[B])
       (implicit g: Applicative[G]): G[Vector[S, B]] =
     g.map(implicitly[Traverse[scala.collection.immutable.Vector]].traverse(fa.vec)(f))(Vector(_))
 
-  override def zero[F](implicit f: Field[F]): Vector[S, F] = point(f.zero)
-  override def add[F](x: Vector[S, F], y: Vector[S, F])(implicit f: Field[F]): Vector[S, F] =
+  override def zero[F](implicit f: Additive[F]): Vector[S, F] = point(f.zero)
+  override def add[F](x: Vector[S, F], y: Vector[S, F])(implicit f: Additive[F]): Vector[S, F] =
     zip(x, y).map(x => f.add(x._1, x._2))
-  override def sub[F](x: Vector[S, F], y: Vector[S, F])(implicit f: Field[F]): Vector[S, F] =
+  override def sub[F](x: Vector[S, F], y: Vector[S, F])(implicit f: Additive[F]): Vector[S, F] =
     zip(x, y).map(x => f.sub(x._1, x._2))
-  override def neg[F](x: Vector[S, F])(implicit f: Field[F]): Vector[S, F] = x.map(f.neg)
+  override def neg[F](x: Vector[S, F])(implicit f: Additive[F]): Vector[S, F] = x.map(f.neg)
 
   override def mull[F](a: F, v: Vector[S, F])(implicit f: Field[F]): Vector[S, F] = v.map(f.mul(a, _))
   override def mulr[F](v: Vector[S, F], a: F)(implicit f: Field[F]): Vector[S, F] = v.map(f.mul(_, a))
@@ -55,25 +55,37 @@ class VectorImpl[S <: Nat](implicit size: ToInt[S])
   /**
    * Find the coefficient of the i-th basis vector.
    */
-  override def index[F](v: Vector[S, F])(i: Int)(implicit r: Field[F]): F =
+  override def index[F](v: Vector[S, F])(i: Int): F =
     v.vec(i)
 
   /**
    * Construct a vector using given coefficients for the orthonormal basis.
    */
-  override def tabulate[F](f: (Int) => F)(implicit r: Field[F]): Vector[S, F] =
-    Vector(collection.immutable.Vector.tabulate(dim)(f(_)))
+  override def tabulate[F](f: (Int) => F): Vector[S, F] =
+    Vector(collection.immutable.Vector.tabulate(dim())(f(_)))
+
+  /**
+   * The dimension of this vector space, as a type.
+   */
+  override type Dim = S
 
   /**
    * The dimension of this vector space.
    */
-  override def dim: Int = size()
+  override val dim: ToInt[Dim] = size
 
   /**
    * Applies a function pointwise on the coordinates of the vector.
+   *
+   * Restricted to natural maps.
    */
   override def pointwise[F](g: AnalyticMap)(v: Vector[S, F])(implicit f: Analytic[F]): Vector[S, F] = v.map(g(_))
 
+  override def foldMap[A, B](v: Vector[S, A])(op: (A) => B)(implicit m: Monoid[B]): B =
+    v.vec.map(op).fold(m.zero)(m.append(_, _))
+
+  override def foldRight[A, B](v: Vector[S, A], z: => B)(op: (A, => B) => B): B =
+    v.vec.foldRight(z)(op(_, _))
 }
 
 object Vector {
