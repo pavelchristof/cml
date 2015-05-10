@@ -8,7 +8,7 @@ case class Identity[V[_]] () extends Model[V, V] {
   override type Type[A] = Vector[_0, A]
 
   override implicit val linear = Vector(Nat(0))
-  override implicit val functor = Vector(Nat(0))
+  override implicit val traverse = Vector(Nat(0))
 
   override def apply[F](input: V[F])(model: Type[F])(implicit f: Analytic[F]): V[F] = input
 }
