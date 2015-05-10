@@ -19,4 +19,6 @@ trait Concrete[V[_]] extends Normed[V] {
   def sinh[F](x: V[F])(implicit f: Analytic[F]): V[F] = pointwise(AnalyticMap.sinh)(x)
   def cosh[F](x: V[F])(implicit f: Analytic[F]): V[F] = pointwise(AnalyticMap.cosh)(x)
   def tanh[F](x: V[F])(implicit f: Analytic[F]): V[F] = pointwise(AnalyticMap.tanh)(x)
+
+  def sigmoid[F](x: V[F])(implicit f: Analytic[F]): V[F] = pointwise(AnalyticMap.sigmoid)(x)
 }
