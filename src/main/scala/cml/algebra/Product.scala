@@ -60,7 +60,7 @@ object Product {
      * Construct a vector using given coefficients for the orthonormal basis.
      */
     override def tabulate[A](h: (Int) => A): (F[A], G[A]) =
-      (f.tabulate(h), g.tabulate(i => h(i - f.dim())))
+      (f.tabulate(h), g.tabulate(i => h(i + f.dim())))
 
     /**
      * Find the coefficient of the i-th basis vector.

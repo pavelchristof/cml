@@ -1,16 +1,17 @@
 import java.io.{FileInputStream, ObjectInputStream, FileOutputStream, ObjectOutputStream}
 
-import cml.algebra.traits.AnalyticMap
+import cml.algebra.traits._
 import cml.models._
 import cml.algebra
 import cml.algebra.Real._
+import cml.algebra.ad.Forward._
 import shapeless.Nat
 import scala.util.Random
 
 object ModelTest extends App {
   implicit val vecIn = algebra.Vector(Nat(5))
   implicit val vecHidden = algebra.Vector(Nat(20))
-  implicit val vecOut = algebra.Vector(Nat(2))
+  implicit val vecOut = algebra.Vector(Nat(1))
 
   val model = Chain4(
     LinearMap[vecIn.Type, vecHidden.Type],
@@ -24,6 +25,7 @@ object ModelTest extends App {
   val input = vecIn.from(Seq(1.0, 2.0, 3.0, 4.0, 5.0)).get
   println(model(input)(instance))
 
+  // Serialization
   val oos = new ObjectOutputStream(new FileOutputStream("obj.bin"))
   oos.writeObject(instance)
   oos.close
@@ -33,4 +35,14 @@ object ModelTest extends App {
   ois.close
 
   println(model(input)(loadedInstance))
+
+  // Gradient
+  import model._
+  import vecIn.functorSyntax._
+
+  val gradInput = input.map(inject(_))
+  val gradient = grad[Double, model.Type](x =>
+    vecOut.index(model(gradInput)(x))(0))_
+
+  println(gradient(instance))
 }
