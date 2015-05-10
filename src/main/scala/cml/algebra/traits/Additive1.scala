@@ -1,4 +1,4 @@
-package CML.Algebra
+package cml.algebra.traits
 
 trait Additive1[V[_]] {
   def zero[F](implicit f: Field[F]): V[F]

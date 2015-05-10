@@ -1,4 +1,4 @@
-package CML.Algebra
+package cml.algebra.traits
 
 trait Linear[V[_]] extends Additive1[V] {
   def mull[F](a: F, v: V[F])(implicit f: Field[F]): V[F]

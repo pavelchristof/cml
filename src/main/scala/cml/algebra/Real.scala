@@ -1,4 +1,6 @@
-package CML.Algebra
+package cml.algebra
+
+import cml.algebra.traits.Analytic
 
 object Real {
   implicit object DoubleField extends Analytic[Double] {

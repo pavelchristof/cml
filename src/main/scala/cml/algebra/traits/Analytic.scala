@@ -1,7 +1,7 @@
-package CML.Algebra
+package cml.algebra.traits
 
 /**
- * An archimedean local field.
+ * Real or complex numbers.
  */
 trait Analytic[T] extends Field[T] {
   def abs(x: T): T

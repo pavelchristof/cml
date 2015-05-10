@@ -1,4 +1,6 @@
-package CML.Algebra
+package cml.algebra
+
+import cml.algebra.traits.Field
 
 object Boolean {
   implicit object BooleanField extends Field[Boolean] {

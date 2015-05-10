@@ -1,4 +1,4 @@
-package CML.Algebra
+package cml.algebra.traits
 
 trait Additive[T] {
   val zero: T

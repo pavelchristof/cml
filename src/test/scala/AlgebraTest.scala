@@ -1,16 +1,16 @@
-import CML.Algebra.Real._
-import CML.Algebra._
-import shapeless.ops.nat.ToInt
-import shapeless.{Succ, _0, Nat}
+import cml.algebra.traits._
+import cml.algebra.Real._
+import cml.algebra
+import shapeless.Nat
 
 object AlgebraTest extends App {
   def fun[F](x: F)(implicit f: Additive[F]): F = f.add(x, x)
   def fun2[V[_], F](x: V[F])(implicit s: Additive1[V], f: Field[F]): V[F] = s.add(x, x)
   println(fun[Double](2))
 
-  implicit val vec2 = Vector(Nat(2))
-  implicit val vec3 = Vector(Nat(3))
-  val vec2b = Vector(Nat(2))
+  implicit val vec2 = algebra.Vector(Nat(2))
+  implicit val vec3 = algebra.Vector(Nat(3))
+  val vec2b = algebra.Vector(Nat(2))
 
   println(vec2.dim)
   println(vec3.dim)

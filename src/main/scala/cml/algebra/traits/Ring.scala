@@ -1,4 +1,4 @@
-package CML.Algebra
+package cml.algebra.traits
 
 trait Ring[T] extends Additive[T] {
   def mul(x: T, y: T): T

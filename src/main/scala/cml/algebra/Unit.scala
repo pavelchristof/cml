@@ -1,4 +1,6 @@
-package CML.Algebra
+package cml.algebra
+
+import cml.algebra.traits.Ring
 
 object Unit {
   implicit object UnitRing extends Ring[Unit] {

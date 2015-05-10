@@ -1,13 +1,14 @@
-package CML.Algebra
+package cml.algebra
 
+import cml.algebra.traits._
 import shapeless.Nat
 import shapeless.ops.nat.ToInt
 
 import scalaz.{Applicative, Zip}
 
 case class Vector[+S <: Nat, +A] (
-  val vec: scala.collection.immutable.Vector[A]
-) extends Traversable[A]  {
+  vec: scala.collection.immutable.Vector[A]
+) extends Traversable[A] with Serializable {
   override def foreach[U](f: (A) => U): Unit = vec.foreach(f)
 }
 
@@ -16,6 +17,13 @@ class VectorImpl[S <: Nat](implicit size: ToInt[S])
   with Applicative[({type `T[S]`[a] = Vector[S, a]})#`T[S]`]
   with Concrete[({type `T[S]`[a] = Vector[S, a]})#`T[S]`] {
   type Type[a] = Vector[S, a]
+
+  def from[A](vec: Seq[A]): Option[Vector[S, A]] =
+    if (vec.size == dim) {
+      Some(Vector(vec.toVector))
+    } else {
+      None
+    }
 
   override def zip[A, B](a: => Vector[S, A], b: => Vector[S, B]): Vector[S, (A, B)] = new Vector(a.vec.zip(b.vec))
 

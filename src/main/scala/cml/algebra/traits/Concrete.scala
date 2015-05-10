@@ -1,4 +1,4 @@
-package CML.Algebra
+package cml.algebra.traits
 
 trait AnalyticMap {
   def apply[F](x: F)(implicit f: Analytic[F]): F

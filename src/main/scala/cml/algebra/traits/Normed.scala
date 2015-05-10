@@ -1,4 +1,4 @@
-package CML.Algebra
+package cml.algebra.traits
 
 trait Normed[V[_]] extends Linear[V] {
   def taxicab[F](v: V[F])(implicit f: Analytic[F]): F
