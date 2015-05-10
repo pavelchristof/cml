@@ -5,7 +5,7 @@ import cml.algebra.traits._
 
 import scalaz.{Traverse, Applicative}
 
-case class LinearMap[In[_], Out[_]] (
+case class LinearMap[In[_] <: Serializable, Out[_] <: Serializable] (
   implicit outApplicative: Applicative[Out],
   inNormed: Normed[In],
   inTraverse: Traverse[In],

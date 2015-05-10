@@ -6,7 +6,7 @@ import cml.algebra.traits._
 import scalaz.{Traverse}
 
 trait Model[-In[_], +Out[_]] {
-  type Type[_]
+  type Type[_] <: Serializable
 
   implicit val linear: Linear[Type]
   implicit val traverse: Traverse[Type]
