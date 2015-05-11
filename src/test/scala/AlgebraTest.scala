@@ -12,8 +12,8 @@ object AlgebraTest extends App {
   implicit val vec3 = algebra.Vector(Nat(3))
   val vec2b = algebra.Vector(Nat(2))
 
-  println(vec2.dim)
-  println(vec3.dim)
+  println(vec2.dimFin)
+  println(vec3.dimFin)
 
   val u: vec3.Type[Double] = vec3.point(2.0)
   val v = vec3.mull(3.0, u)
@@ -23,6 +23,7 @@ object AlgebraTest extends App {
   val w = vec2.point(1.0)
   val r = vec2.add(w, vec2b.point(3.0))
   println(w)
+  println(r)
 
   println(fun2[vec2.Type, Double](w))
 }

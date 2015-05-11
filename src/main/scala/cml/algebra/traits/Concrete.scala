@@ -1,40 +1,42 @@
 package cml.algebra.traits
 
-import shapeless.Nat
-import shapeless.ops.nat.ToInt
-
 import scalaz.{Monoid, Foldable, Applicative}
 
 /**
- * Finitely dimensional vector spaces with a canonical orthonormal basis.
+ * Finitely dimensional vector spaces with a canonical normal basis.
  */
-trait Concrete[V[_]] extends Normed[V] with Applicative[V] with Foldable[V] {
+trait Concrete[V[_]] extends LocallyConcrete[V] with Applicative[V] with Foldable[V] {
   /**
-   * The dimension of this vector space, as a type.
+   * The (finite) dimension of this vector space.
    */
-  type Dim <: Nat
+  val dimFin: BigInt
 
   /**
-   * The dimension of this vector space.
+   * The (finite) dimension of this vector space.
    */
-  val dim: ToInt[Dim]
+  final override val dim: Option[BigInt] = Some(dimFin)
 
   /**
-   * Construct a vector using given coefficients for the orthonormal basis.
+   * Construct a vector from coefficients of the basis vectors.
    */
-  def tabulate[F](f: (Int) => F): V[F]
+  def tabulate[A](h: (Index) => A): V[A]
 
   /**
-   * Find the coefficient of the i-th basis vector.
+   * Construct a vector from coefficients of the basis vectors.
    */
-  def index[F](v: V[F])(i: Int): F
+  override def tabulate[A](h: Map[Index, A])(implicit a: Additive[A]): V[A] =
+    tabulate(i => h.applyOrElse[Index, A](i, _ => a.zero))
 
   /**
-   * Returns the i-th vector of the orthonormal basis.
-   * @param i Index assumed to be in range [0, dim - 1].
+   * The (normal) basis for this vector space.
    */
-  def unit[F](i: Int)(implicit f: Ring[F]): V[F] =
-    tabulate(j => if (i == j) f.one else f.zero)
+  override def basis[A](i: Index)(implicit field: Field[A]): V[A] =
+    tabulate(j => if (i == j) field.one else field.zero)
+
+  /**
+   * Returns the concrete subspace containing v.
+   */
+  final override def restrict[A](v: V[A])(implicit field: Field[A]): Concrete[V] = this
 
   /**
    * Applies a function, possibly changing the underlying field.
@@ -63,7 +65,7 @@ trait Concrete[V[_]] extends Normed[V] with Applicative[V] with Foldable[V] {
    *
    * Restricted to natural maps.
    */
-  def pointwise[F](g: AnalyticMap)(v: V[F])(implicit f: Analytic[F]): V[F] = {
+  def pointwise[A](g: AnalyticMap)(v: V[A])(implicit an: Analytic[A]): V[A] = {
     val coeff = index(v)_
     tabulate(i => g(coeff(i)))
   }
@@ -71,11 +73,11 @@ trait Concrete[V[_]] extends Normed[V] with Applicative[V] with Foldable[V] {
   /**
    * Sums all the coordinates.
    */
-  def sum[F](v: V[F])(implicit f: Additive[F]): F = foldRight(v, f.zero)(f.add(_, _))
+  override def sum[A](v: V[A])(implicit a: Additive[A]): A = foldRight(v, a.zero)(a.add(_, _))
 
   override def foldMap[A, B](fa: V[A])(f: (A) => B)(implicit F: Monoid[B]): B =
-    (0 until dim()).map(i => f(index(fa)(i))).fold(F.zero)(F.append(_, _))
+    enumerateIndex.enumerate.map(i => f(index(fa)(i))).fold(F.zero)(F.append(_, _))
 
   override def foldRight[A, B](fa: V[A], z: => B)(f: (A, => B) => B): B =
-    (0 until dim()).map(i => index(fa)(i)).foldRight(z)(f(_, _))
+    enumerateIndex.enumerate.map(i => index(fa)(i)).foldRight(z)(f(_, _))
 }

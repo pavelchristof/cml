@@ -3,7 +3,8 @@ package cml.models
 import cml.algebra.traits._
 
 /**
- * A machine learning model, taking some input and transforming it to some output.
+ * Machine learning models expressible as a differentiable function, mapping some input to some output.
+ *
  * @tparam In The input type, parametrized by the numeric type.
  * @tparam Out The output type, parametrized by the numeric type.
  */

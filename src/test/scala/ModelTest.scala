@@ -41,8 +41,8 @@ object ModelTest extends App {
   import vecIn.functorSyntax._
 
   val gradInput = input.map(inject(_))
-  val gradient = grad[Double, model.Type](x =>
-    vecOut.index(model(gradInput)(x))(0))_
+  val gradient = grad[Double, model.Type](modelInst =>
+    vecOut.index(model(gradInput)(modelInst))(0))_
 
   println(gradient(instance))
 }
