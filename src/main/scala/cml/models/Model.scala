@@ -15,9 +15,9 @@ trait Model[-In[_], +Out[_]] {
   type Type[_] <: Serializable
 
   /**
-   * Model instance is required to be a concrete vector space.
+   * Model instance is required to be a locally concrete vector space.
    */
-  implicit val concrete: Concrete[Type]
+  implicit val locallyConcrete: LocallyConcrete[Type]
 
   /**
    * Applies the model to some input.
@@ -30,9 +30,10 @@ trait Model[-In[_], +Out[_]] {
   def apply[F](input: In[F])(model: Type[F])(implicit f: Analytic[F]): Out[F]
 
   /**
-   * Creates a new model instance filled with some value.
+   * Creates a new model instance and fills it with some value. Only the concrete parts of the model will be
+   * filled, the locally concrete vector spaces (like Maps) will be left with zeros.
    * @param x Value the model parameters will be initialized with.
    * @tparam F The number type.
    */
-  def fill[F](x: => F): Type[F] = concrete.point(x)
+  def fill[F](x: => F)(implicit a: Additive[F]): Type[F]
 }

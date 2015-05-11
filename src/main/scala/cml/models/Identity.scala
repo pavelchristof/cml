@@ -1,13 +1,18 @@
 package cml.models
 
 import cml.algebra
-import cml.algebra.traits.Analytic
-import shapeless.{Nat, _0}
+import cml.algebra.traits.{Additive, Analytic}
+import shapeless.Nat
 
 case class Identity[V[_]] () extends Model[V, V] {
-  override type Type[A] = algebra.Vector[_0, A]
+  val vec = algebra.Vector(Nat(0))
+  override type Type[A] = vec.Type[A]
 
-  override implicit val concrete = algebra.Vector(Nat(0))
+  override implicit val locallyConcrete = vec
 
-  override def apply[F](input: V[F])(model: Type[F])(implicit f: Analytic[F]): V[F] = input
+  override def apply[F](input: V[F])(model: Type[F])(implicit f: Analytic[F]): V[F] =
+    input
+
+  override def fill[F](x: => F)(implicit a: Additive[F]): Type[F] =
+    vec.point(x)
 }
