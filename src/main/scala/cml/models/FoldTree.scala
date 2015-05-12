@@ -9,7 +9,7 @@ object Tree {
   }
 }
 
-sealed class Tree[T]
+sealed abstract class Tree[T]
 case class Node[T](l: Tree[T], r: Tree[T]) extends Tree[T]
 case class Leaf[T](w: T) extends Tree[T]
 
