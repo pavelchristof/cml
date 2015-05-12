@@ -1,4 +1,6 @@
-package cml.algebra.traits
+package cml.algebra
+
+import cml.algebra.traits.Additive
 
 object Function {
   class FunctionAdditive[A, B](implicit a: Additive[B]) extends Additive[(A) => B] {
