@@ -17,63 +17,83 @@ trait Concrete[V[_]] extends LocallyConcrete[V] with Applicative[V] with Foldabl
   final override val dim: Option[BigInt] = Some(dimFin)
 
   /**
-   * Construct a vector from coefficients of the basis vectors.
-   */
-  def tabulate[A](h: (Index) => A): V[A]
-
-  /**
-   * Construct a vector from coefficients of the basis vectors.
-   */
-  override def tabulate[A](h: Map[Index, A])(implicit a: Additive[A]): V[A] =
-    tabulate(i => h.applyOrElse[Index, A](i, _ => a.zero))
-
-  /**
    * The (normal) basis for this vector space.
    */
   override def basis[A](i: Index)(implicit field: Field[A]): V[A] =
     tabulate(j => if (i == j) field.one else field.zero)
 
   /**
+   * Construct a vector from coefficients of the basis vectors.
+   */
+  def tabulate[A](h: (Index) => A): V[A]
+
+  /**
+   * Find the coefficient of a basis vector.
+   */
+  def index[A](v: V[A])(i: Index): A
+
+  override def zero[F](implicit f: Additive[F]): V[F] =
+    point(f.zero)
+  override def add[F](x: V[F], y: V[F])(implicit f: Additive[F]): V[F] =
+    apply2(x, y)(f.add(_, _))
+  override def neg[F](x: V[F])(implicit f: Additive[F]): V[F] =
+    map(x)(f.neg(_))
+
+  override def mull[F](a: F, v: V[F])(implicit f: Field[F]): V[F] =
+    map(v)(f.mul(a, _))
+  override def mulr[F](v: V[F], a: F)(implicit f: Field[F]): V[F] =
+    map(v)(f.mul(_, a))
+  override def div[F](v: V[F], a: F)(implicit f: Field[F]): V[F] =
+    map(v)(f.div(_, a))
+
+  override def sum[A](v: V[A])(implicit a: Additive[A]): A =
+    foldRight(v, a.zero)(a.add(_, _))
+  override def taxicab[A](v: V[A])(implicit a: Analytic[A]): A =
+    foldRight(v, a.zero){ case (x, y) => a.add(a.neg(x), y) }
+  override def dot[A](u: V[A], v: V[A])(implicit f: Field[A]): A =
+    sum(apply2(u, v)(f.mul(_, _)))
+
+  /**
+   * Construct a vector from coefficients of the basis vectors.
+   */
+  final override def tabulateLC[A](h: Map[Index, A])(implicit a: Additive[A]): V[A] =
+    tabulate(i => h.applyOrElse[Index, A](i, _ => a.zero))
+
+  /**
+   * Find the coefficient of a basis vector.
+   */
+  final override def indexLC[A](v: V[A])(i: Index)(implicit a: Additive[A]): A =
+    index(v)(i)
+
+  /**
+   * Maps the vector with a function f. It must hold that f(0) = 0.
+   */
+  final override def mapLC[A, B](x: V[A])(f: (A) => B)(implicit a: Additive[A], b: Additive[B]): V[B] =
+    map(x)(f)
+
+  /**
+   * Applies a vector of functions to a vector, pointwise. It must hold that f(0) = 0.
+   */
+  final override def apLC[A, B](x: V[A])(f: V[(A) => B])(implicit a: Additive[A], b: Additive[B]): V[B] =
+    ap(x)(f)
+
+  /**
    * Returns the concrete subspace containing v.
    */
   final override def restrict[A](v: V[A])(implicit field: Field[A]): Concrete[V] = this
 
-  /**
-   * Applies a function, possibly changing the underlying field.
-   */
   override def map[A, B](v: V[A])(f: (A) => B): V[B] = {
     val coeff = index(v)_
     tabulate(i => f(coeff(i)))
   }
 
-  /**
-   * Sets all coefficients to some value.
-   */
   override def point[A](a: => A): V[A] = tabulate(_ => a)
 
-  /**
-   * Applies functions pointwise.
-   */
   override def ap[A, B](x: => V[A])(f: => V[(A) => B]): V[B] = {
     val xi = index(x)_
     val fi = index(f)_
     tabulate(i => fi(i)(xi(i)))
   }
-
-  /**
-   * Applies a function pointwise on the coordinates of the vector.
-   *
-   * Restricted to natural maps.
-   */
-  def pointwise[A](g: AnalyticMap)(v: V[A])(implicit an: Analytic[A]): V[A] = {
-    val coeff = index(v)_
-    tabulate(i => g(coeff(i)))
-  }
-
-  /**
-   * Sums all the coordinates.
-   */
-  override def sum[A](v: V[A])(implicit a: Additive[A]): A = foldRight(v, a.zero)(a.add(_, _))
 
   override def foldMap[A, B](fa: V[A])(f: (A) => B)(implicit F: Monoid[B]): B =
     enumerateIndex.enumerate.map(i => f(index(fa)(i))).fold(F.zero)(F.append(_, _))

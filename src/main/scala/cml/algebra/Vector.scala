@@ -12,10 +12,8 @@ case class Vector[+S <: Nat, +A] (
 ) extends Serializable
 
 class VectorImpl[S <: Nat](implicit size: ToInt[S])
-  extends Zip[({type `T[S]`[a] = Vector[S, a]})#`T[S]`]
-  with Applicative[({type `T[S]`[a] = Vector[S, a]})#`T[S]`]
-  with Traverse[({type `T[S]`[a] = Vector[S, a]})#`T[S]`]
-  with Concrete[({type `T[S]`[a] = Vector[S, a]})#`T[S]`] {
+  extends Concrete[({type `T[S]`[a] = Vector[S, a]})#`T[S]`]
+  with Traverse[({type `T[S]`[a] = Vector[S, a]})#`T[S]`] {
 
   type Type[a] = Vector[S, a]
 
@@ -29,37 +27,20 @@ class VectorImpl[S <: Nat](implicit size: ToInt[S])
       None
     }
 
-  import traverseSyntax._
-
-  override def zip[A, B](a: => Vector[S, A], b: => Vector[S, B]): Vector[S, (A, B)] = new Vector(a.vec.zip(b.vec))
-
-  override def map[A, B](fa: Vector[S, A])(f: (A) => B): Vector[S, B] = Vector[S, B](fa.vec.map(f))
-  override def point[A](a: => A): Vector[S, A] = new Vector(scala.collection.immutable.Vector.fill(size())(a))
-  override def ap[A, B](fa: => Vector[S, A])(f: => Vector[S, (A) => B]): Vector[S, B] =
-    zip(fa, f).map(x => x._2(x._1))
-  override def traverseImpl[G[_], A, B](fa: Vector[S, A])(f: (A) => G[B])
-      (implicit g: Applicative[G]): G[Vector[S, B]] =
-    g.map(implicitly[Traverse[scala.collection.immutable.Vector]].traverse(fa.vec)(f))(Vector(_))
-
-  override def zero[F](implicit f: Additive[F]): Vector[S, F] = point(f.zero)
-  override def add[F](x: Vector[S, F], y: Vector[S, F])(implicit f: Additive[F]): Vector[S, F] =
-    zip(x, y).map(z => f.add(z._1, z._2))
-  override def sub[F](x: Vector[S, F], y: Vector[S, F])(implicit f: Additive[F]): Vector[S, F] =
-    zip(x, y).map(z => f.sub(z._1, z._2))
-  override def neg[F](x: Vector[S, F])(implicit f: Additive[F]): Vector[S, F] = x.map(f.neg)
-
-  override def mull[F](a: F, v: Vector[S, F])(implicit f: Field[F]): Vector[S, F] = v.map(f.mul(a, _))
-  override def mulr[F](v: Vector[S, F], a: F)(implicit f: Field[F]): Vector[S, F] = v.map(f.mul(_, a))
-  override def div[F](v: Vector[S, F], a: F)(implicit f: Field[F]): Vector[S, F] = v.map(f.div(_, a))
-
-  override def taxicab[F](v: Vector[S, F])(implicit f: Analytic[F]): F = v.map(f.abs).foldLeft(f.zero)(f.add)
-  override def length[F](v: Vector[S, F])(implicit f: Analytic[F]): F = f.sqrt(dot(v, v))
-  override def dot[F](u: Vector[S, F], v: Vector[S, F])(implicit f: Field[F]): F =
-    apply2(u, v)(f.mul).foldLeft(f.zero)(f.add)
-
-
+  /**
+   * A countable or finite set indexing the basis.
+   */
   type Index = Int
+
+  /**
+   * The index must be recursively enumerable.
+   */
   override def enumerateIndex: Enumerate[Int] = Enumerate.natInt(size())
+
+  /**
+   * The dimension of this vector space.
+   */
+  override val dimFin: BigInt = size()
 
   /**
    * Find the coefficient of the i-th basis vector.
@@ -73,17 +54,16 @@ class VectorImpl[S <: Nat](implicit size: ToInt[S])
   override def tabulate[F](f: (Int) => F): Vector[S, F] =
     Vector(collection.immutable.Vector.tabulate(size())(f(_)))
 
-  /**
-   * The dimension of this vector space.
-   */
-  override val dimFin: BigInt = size()
+  override def map[A, B](fa: Vector[S, A])(f: (A) => B): Vector[S, B] = Vector[S, B](fa.vec.map(f))
 
-  /**
-   * Applies a function pointwise on the coordinates of the vector.
-   *
-   * Restricted to natural maps.
-   */
-  override def pointwise[F](g: AnalyticMap)(v: Vector[S, F])(implicit f: Analytic[F]): Vector[S, F] = v.map(g(_))
+  override def point[A](a: => A): Vector[S, A] = new Vector(collection.immutable.Vector.fill(size())(a))
+
+  override def ap[A, B](fa: => Vector[S, A])(f: => Vector[S, (A) => B]): Vector[S, B] =
+    Vector((fa.vec, f.vec).zipped.map{ case (x, g) => g(x) })
+
+  override def traverseImpl[G[_], A, B](fa: Vector[S, A])(f: (A) => G[B])
+      (implicit g: Applicative[G]): G[Vector[S, B]] =
+    g.map(implicitly[Traverse[scala.collection.immutable.Vector]].traverse(fa.vec)(f))(Vector(_))
 
   override def foldMap[A, B](v: Vector[S, A])(op: (A) => B)(implicit m: Monoid[B]): B =
     v.vec.map(op).fold(m.zero)(m.append(_, _))

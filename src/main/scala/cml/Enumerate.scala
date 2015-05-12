@@ -55,6 +55,14 @@ object Enumerate {
   }
 
   /**
+   * Enumerates elements of a sequence.
+   */
+  def seq[A](seq: Seq[A]): Enumerate[A] = new Enumerate[A] {
+    override val count: Option[BigInt] = Some(seq.size)
+    override def enumerate: Stream[A] = seq.toStream
+  }
+
+  /**
    * Enumerates all values of type Either[A, B] for enumerable A and B.
    */
   def sum[A, B](implicit a: Enumerate[A], b: Enumerate[B]): Enumerate[Either[A, B]] = new Enumerate[Either[A, B]] {

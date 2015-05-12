@@ -85,24 +85,6 @@ object Product {
       f.dim(v._1) + g.dim(v._2)
 
     /**
-     * Construct a vector from coefficients of the basis vectors.
-     */
-    override def tabulate[A](h: Map[Index, A])(implicit a: Additive[A]): (F[A], G[A]) = {
-      val lefts = for ((i, v) <- h; j <- i.left.toSeq) yield (j, v)
-      val rights = for ((i, v) <- h; j <- i.right.toSeq) yield (j, v)
-      (f.tabulate(lefts.toMap), g.tabulate(rights.toMap))
-    }
-
-    /**
-     * Find the coefficient of a basis vector.
-     */
-    override def index[A](v: (F[A], G[A]))(i: Index): A =
-      i match {
-        case Left(j) => f.index(v._1)(j)
-        case Right(j) => g.index(v._2)(j)
-      }
-
-    /**
      * The (normal) basis for this vector space.
      */
     override def basis[A](i: Index)(implicit field: Field[A]): (F[A], G[A]) =
@@ -112,16 +94,40 @@ object Product {
       }
 
     /**
+     * Construct a vector from coefficients of the basis vectors.
+     */
+    override def tabulateLC[A](h: Map[Index, A])(implicit a: Additive[A]): (F[A], G[A]) = {
+      val lefts = for ((i, v) <- h; j <- i.left.toSeq) yield (j, v)
+      val rights = for ((i, v) <- h; j <- i.right.toSeq) yield (j, v)
+      (f.tabulateLC(lefts.toMap), g.tabulateLC(rights.toMap))
+    }
+
+    /**
+     * Find the coefficient of a basis vector.
+     */
+    override def indexLC[A](v: (F[A], G[A]))(i: Index)(implicit a: Additive[A]): A =
+      i match {
+        case Left(j) => f.indexLC(v._1)(j)
+        case Right(j) => g.indexLC(v._2)(j)
+      }
+
+    /**
+     * Maps the vector with a function f. It must hold that f(0) = 0.
+     */
+    override def mapLC[A, B](x: (F[A], G[A]))(h: (A) => B)(implicit a: Additive[A], b: Additive[B]): (F[B], G[B]) =
+      (f.mapLC(x._1)(h), g.mapLC(x._2)(h))
+
+    /**
+     * Applies a vector of functions to a vector, pointwise. It must hold that f(0) = 0.
+     */
+    override def apLC[A, B](x: (F[A], G[A]))(h: (F[A => B], G[A => B]))(implicit a: Additive[A], b: Additive[B]): (F[B], G[B]) =
+      (f.apLC(x._1)(h._1), g.apLC(x._2)(h._2))
+
+    /**
      * Returns the concrete subspace containing v.
      */
     override def restrict[A](v: (F[A], G[A]))(implicit field: Field[A]): Concrete[({type T[A] = (F[A], G[A])})#T] =
       Product.concrete(f.restrict(v._1), g.restrict((v._2)))
-
-    override def map[A, B](v: (F[A], G[A]))(h: (A) => B): (F[B], G[B]) =
-      (f.map(v._1)(h), g.map(v._2)(h))
-
-    override def ap[A, B](x: => (F[A], G[A]))(h: => (F[(A) => B], G[(A) => B])): (F[B], G[B]) =
-      (f.ap(x._1)(h._1), g.ap(x._2)(h._2))
   }
 
   class ProductConcrete[F[_], G[_]](implicit f_ : Concrete[F], g_ : Concrete[G])
@@ -142,13 +148,22 @@ object Product {
       (f.tabulate(i => h(Left(i))), g.tabulate(i => h(Right(i))))
 
     /**
-     * Applies a function pointwise on the coordinates of the vector.
+     * Find the coefficient of a basis vector.
      */
-    override def pointwise[A](h: AnalyticMap)(v: (F[A], G[A]))(implicit a: Analytic[A]): (F[A], G[A]) =
-      (f.pointwise(h)(v._1), g.pointwise(h)(v._2))
+    override def index[A](v: (F[A], G[A]))(i: Index): A =
+      i match {
+        case Left(j) => f.index(v._1)(j)
+        case Right(j) => g.index(v._2)(j)
+      }
+
+    override def map[A, B](v: (F[A], G[A]))(h: (A) => B): (F[B], G[B]) =
+      (f.map(v._1)(h), g.map(v._2)(h))
 
     override def point[A](a: => A): (F[A], G[A]) =
       (f.point(a), g.point(a))
+
+    override def ap[A, B](x: => (F[A], G[A]))(h: => (F[(A) => B], G[(A) => B])): (F[B], G[B]) =
+      (f.ap(x._1)(h._1), g.ap(x._2)(h._2))
 
     override def foldMap[A, B](v: (F[A], G[A]))(op: (A) => B)(implicit m: Monoid[B]): B =
       m.append(f.foldMap(v._1)(op), g.foldMap(v._2)(op))
