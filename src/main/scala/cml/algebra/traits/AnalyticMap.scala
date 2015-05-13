@@ -1,7 +1,9 @@
 package cml.algebra.traits
 
-trait AnalyticMap {
+abstract class AnalyticMap {
    def apply[F](x: F)(implicit f: Analytic[F]): F
+   def apply[V[_], F](v: V[F])(implicit f: Analytic[F], c: Concrete[V]): V[F] =
+     c.map(v)(this.apply(_))
 }
 
 object AnalyticMap {
@@ -65,6 +67,15 @@ object AnalyticMap {
     override def apply[F](x: F)(implicit f: Analytic[F]): F = {
       import f.analyticSyntax._
       f.one / (f.one + (-x).exp)
+    }
+  }
+
+  val softmax = new AnalyticMap {
+    override def apply[F](x: F)(implicit f: Analytic[F]): F = f.one
+    override def apply[V[_], F](v: V[F])(implicit f: Analytic[F], c: Concrete[V]): V[F] = {
+      import f.analyticSyntax._
+      val s = c.sum(v)
+      c.map(v)(_ / s)
     }
   }
 }
