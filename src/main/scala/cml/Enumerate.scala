@@ -46,7 +46,7 @@ object Enumerate {
   }
 
   /**
-   * Enumerates all strings over some alphabete.
+   * Enumerates all strings over some alphabet.
    */
   def string(charEnum: Enumerate[Char]): Enumerate[String] = new Enumerate[String] {
     override val count: Option[BigInt] = None
