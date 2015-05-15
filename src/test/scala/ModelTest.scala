@@ -11,7 +11,7 @@ object ModelTest extends App {
   implicit val vecWord = algebra.Vector(Nat(40))
   implicit val vecPair = algebra.Product[vecWord.Type, vecWord.Type]
   implicit val vecHidden = algebra.Vector(Nat(20))
-  implicit val out = algebra.Scalar
+  implicit val vecOut = algebra.Vector(Nat(3))
   type VecTree[A] = algebra.Compose[Tree, vecWord.Type]#Type[A]
 
   val model = Chain5(
@@ -20,8 +20,8 @@ object ModelTest extends App {
     ) : Model[VecTree, vecWord.Type],
     LinearMap[vecWord.Type, vecHidden.Type],
     Pointwise[vecHidden.Type](AnalyticMap.sigmoid),
-    LinearMap[vecHidden.Type, out.Type],
-    Pointwise[out.Type](AnalyticMap.sigmoid)
+    LinearMap[vecHidden.Type, vecOut.Type],
+    Softmax[vecOut.Type]
   )
 
   val rng = new Random()
