@@ -15,7 +15,7 @@ case class Pointwise[V[_]] (
   override implicit val locallyConcrete = vec
 
   def apply[F](input: V[F])(model: Type[F])(implicit field: Analytic[F]): V[F] =
-    c.map(input)(f(_))
+    f(input)
 
   override def fill[F](x: => F)(implicit a: Additive[F]): Type[F] =
     vec.point(x)
