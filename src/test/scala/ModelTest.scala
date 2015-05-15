@@ -1,4 +1,4 @@
-import cml.algebra
+import cml._
 import cml.algebra.traits._
 import cml.algebra.Real._
 import cml.models._

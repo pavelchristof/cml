@@ -1,4 +1,4 @@
-package cml.models
+package cml
 
 import cml.algebra.traits._
 

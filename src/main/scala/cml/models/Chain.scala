@@ -1,7 +1,7 @@
 package cml.models
 
 import cml.algebra.traits._
-import cml.algebra
+import cml.{Model, algebra}
 
 case class Chain2[-In[_], Mid[_], +Out[_]] (
   m1: Model[In, Mid],

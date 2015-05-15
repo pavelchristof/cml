@@ -1,5 +1,6 @@
 package cml.models
 
+import cml.Model
 import cml.algebra.Compose
 import cml.algebra.traits.{Additive, Analytic}
 

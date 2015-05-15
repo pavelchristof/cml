@@ -1,6 +1,6 @@
 package cml.models
 
-import cml.algebra
+import cml.{Model, algebra}
 import cml.algebra.traits._
 import shapeless.Nat
 
