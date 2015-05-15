@@ -30,8 +30,8 @@ trait Model[-In[_], +Out[_]] {
   def apply[A](input: In[A])(model: Type[A])(implicit field: Analytic[A]): Out[A]
 
   /**
-   * Creates a new model instance and fills it with some value. Only the concrete parts of the model will be
-   * filled, the locally concrete vector spaces (like Maps) will be left with zeros.
+   * Creates a new model instance and fills it with some value. Only the finite parts of the model will be
+   * filled, the infinite vector spaces (like Maps) will be left with zeros.
    * @param x Value the model parameters will be initialized with.
    * @tparam A The number type.
    */
