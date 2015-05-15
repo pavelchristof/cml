@@ -113,11 +113,10 @@ object Forward extends Engine {
    * Computes the gradient of a function taking a vector as the argument.
    */
   override def grad[F, V[_]](f: (V[Aug[F]]) => Aug[F])(x: V[F])
-      (implicit field: Field[F], lc: LocallyConcrete[V]): V[F] = {
-    val concrete = lc.restrict(x)
-    concrete.tabulate(i => {
-      val input = concrete.tabulate(j =>
-        (concrete.index(x)(i), if (i == j) field.one else field.zero))
+      (implicit field: Field[F], space: Concrete[V]): V[F] = {
+    space.tabulate(i => {
+      val input = space.tabulate(j =>
+        (space.index(x)(i), if (i == j) field.one else field.zero))
       f(input)._2
     })
   }
@@ -126,9 +125,8 @@ object Forward extends Engine {
    * Computes the value and gradient of a function taking a vector as the argument.
    */
   override def gradWithValue[F, V[_]](f: (V[Aug[F]]) => Aug[F])(x: V[F])
-      (implicit field: Field[F], lc: LocallyConcrete[V]): (F, V[F]) = {
-    val concrete = lc.restrict(x)
-    val value = f(concrete.tabulate(i => (concrete.index(x)(i), field.zero)))._1
+      (implicit field: Field[F], space: Concrete[V]): (F, V[F]) = {
+    val value = f(space.tabulate(i => (space.index(x)(i), field.zero)))._1
     (value, grad(f)(x))
   }
 }

@@ -3,7 +3,7 @@ package cml.models
 import cml.algebra.Compose
 import cml.algebra.traits._
 
-case class LinearMap[In[_] <: Serializable, Out[_] <: Serializable] (
+case class LinearMap[In[_], Out[_]] (
   implicit inLC: Concrete[In],
   outLC: Concrete[Out]
 ) extends Model[In, Out] {

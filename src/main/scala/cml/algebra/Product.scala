@@ -2,9 +2,13 @@ package cml.algebra
 
 import cml.Enumerate
 import cml.algebra.traits._
-import shapeless.ops.nat.{ToInt, Sum}
 
 import scalaz.{Functor, Monoid}
+
+case class Product[F[_], G[_]] (implicit f_ : Concrete[F], g_ : Concrete[G])
+  extends Product.ProductConcrete[F, G] {
+  type Type[A] = (F[A], G[A])
+}
 
 object Product {
   class ProductAdditive[F, G](implicit f: Additive[F], g: Additive[G])
@@ -127,7 +131,7 @@ object Product {
      * Returns the concrete subspace containing v.
      */
     override def restrict[A](v: (F[A], G[A]))(implicit field: Field[A]): Concrete[({type T[A] = (F[A], G[A])})#T] =
-      Product.concrete(f.restrict(v._1), g.restrict((v._2)))
+      Product.concrete(f.restrict(v._1), g.restrict(v._2))
   }
 
   class ProductConcrete[F[_], G[_]](implicit f_ : Concrete[F], g_ : Concrete[G])
@@ -171,11 +175,11 @@ object Product {
     override def foldRight[A, B](v: (F[A], G[A]), z: => B)(op: (A, => B) => B): B =
       f.foldRight(v._1, g.foldRight(v._2, z)(op))(op)
   }
-  
+
   implicit def additive[F, G](implicit f: Additive[F], g: Additive[G]): Additive[(F, G)] = new ProductAdditive[F, G]()
   implicit def ring[F, G](implicit f: Ring[F], g: Ring[G]): Ring[(F, G)] = new ProductRing[F, G]()
   implicit def field[F, G](implicit f: Field[F], g: Field[G]): Field[(F, G)] = new ProductField[F, G]()
-  
+
   implicit def additive1[F[_], G[_]]
     (implicit f: Additive1[F], g: Additive1[G]): Additive1[({type T[A] = (F[A], G[A])})#T] =
     new ProductAdditive1[F, G]()

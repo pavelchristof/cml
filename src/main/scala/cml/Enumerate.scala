@@ -17,6 +17,14 @@ trait Enumerate[T] {
 
 object Enumerate {
   /**
+   * Enumerates just the single unit.
+   */
+  def unit: Enumerate[Unit] = new Enumerate[Unit] {
+    override val count: Option[BigInt] = Some(1)
+    override def enumerate: Stream[Unit] = Stream.cons((), Stream.Empty)
+  }
+
+  /**
    * Enumerates all non-negative Ints up to n.
    */
   def natInt(n: Int): Enumerate[Int] = new Enumerate[Int] {
@@ -29,7 +37,7 @@ object Enumerate {
    */
   def natBigInt(n: BigInt): Enumerate[BigInt] = new Enumerate[BigInt] {
     override val count: Option[BigInt] = Some(n.max(0))
-    override def enumerate: Stream[BigInt] = (BigInt(0).until(n)).toStream
+    override def enumerate: Stream[BigInt] = BigInt(0).until(n).toStream
   }
 
   /**

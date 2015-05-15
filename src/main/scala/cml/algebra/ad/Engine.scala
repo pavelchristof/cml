@@ -36,10 +36,10 @@ trait Engine {
   /**
    * Computes the gradient of a function taking a vector as the argument.
    */
-  def grad[F, V[_]](f: (V[Aug[F]]) => Aug[F])(x: V[F])(implicit field: Field[F], lc: LocallyConcrete[V]): V[F]
+  def grad[F, V[_]](f: (V[Aug[F]]) => Aug[F])(x: V[F])(implicit field: Field[F], space: Concrete[V]): V[F]
 
   /**
    * Computes the value and gradient of a function taking a vector as the argument.
    */
-  def gradWithValue[F, V[_]](f: (V[Aug[F]]) => Aug[F])(x: V[F])(implicit field: Field[F], lc: LocallyConcrete[V]): (F, V[F])
+  def gradWithValue[F, V[_]](f: (V[Aug[F]]) => Aug[F])(x: V[F])(implicit field: Field[F], space: Concrete[V]): (F, V[F])
 }

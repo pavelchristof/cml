@@ -35,9 +35,9 @@ trait Concrete[V[_]] extends LocallyConcrete[V] with Applicative[V] with Foldabl
   override def zero[F](implicit f: Additive[F]): V[F] =
     point(f.zero)
   override def add[F](x: V[F], y: V[F])(implicit f: Additive[F]): V[F] =
-    apply2(x, y)(f.add(_, _))
+    apply2(x, y)(f.add)
   override def neg[F](x: V[F])(implicit f: Additive[F]): V[F] =
-    map(x)(f.neg(_))
+    map(x)(f.neg)
 
   override def mull[F](a: F, v: V[F])(implicit f: Field[F]): V[F] =
     map(v)(f.mul(a, _))
@@ -51,7 +51,7 @@ trait Concrete[V[_]] extends LocallyConcrete[V] with Applicative[V] with Foldabl
   override def taxicab[A](v: V[A])(implicit a: Analytic[A]): A =
     foldRight(v, a.zero){ case (x, y) => a.add(a.neg(x), y) }
   override def dot[A](u: V[A], v: V[A])(implicit f: Field[A]): A =
-    sum(apply2(u, v)(f.mul(_, _)))
+    sum(apply2(u, v)(f.mul))
 
   /**
    * Construct a vector from coefficients of the basis vectors.
@@ -81,6 +81,20 @@ trait Concrete[V[_]] extends LocallyConcrete[V] with Applicative[V] with Foldabl
    * Returns the concrete subspace containing v.
    */
   final override def restrict[A](v: V[A])(implicit field: Field[A]): Concrete[V] = this
+
+  /**
+   * The fundamental property of locally concrete vector spaces is that for any function f on vectors polymorphic in
+   * the number type and for each vector v in V, we can factor V as X x Y where X is concrete and f(v) = f(v + y) for
+   * all y in Y. This function finds such a subspace X, not necessarily the smallest.
+   *
+   * It follows that the derivative df(x)/dy = 0 for any y in Y. As such it is enough to consider partial derivatives
+   * on X to find the gradient of f.
+   *
+   * The subspace X does not always depend on the vector v. It only depends on v (and contains restrict(v)) when the
+   * function f uses accumulating functions such as sum(), length(), etc. Otherwise the subspace X is constant for
+   * all v in V.
+   */
+  override def restrict[A](h: Covector[V])(v: V[A])(implicit field: Field[A]): Concrete[V] = this
 
   override def map[A, B](v: V[A])(f: (A) => B): V[B] = {
     val coeff = index(v)_

@@ -2,13 +2,17 @@ package cml.algebra
 
 import cml.Enumerate
 import cml.algebra.traits._
-import shapeless.ops.nat.{Prod, ToInt}
 
 import scalaz.Monoid
 
+case class Compose[F[_], G[_]] (implicit f_ : Concrete[F], g_ : Concrete[G])
+  extends Compose.ComposeConcrete[F, G] {
+  type Type[A] = F[G[A]]
+}
+
 object Compose {
   class ComposeAdditive1[F[_], G[_]](implicit f: Additive1[F], g: Additive1[G])
-    extends Additive1[({type T[A] = F[G[A]]})#T] {
+    extends Additive1[({type T[A] = (F[G[A]])})#T] {
     override def zero[A](implicit field: Additive[A]): F[G[A]] = f.zero[G[A]](g.additive[A])
     override def add[A](x: F[G[A]], y: F[G[A]])(implicit field: Additive[A]): F[G[A]] = f.add(x, y)(g.additive[A])
     override def neg[A](x: F[G[A]])(implicit field: Additive[A]): F[G[A]] = f.neg(x)(g.additive[A])
@@ -16,7 +20,7 @@ object Compose {
 
   class ComposeLinear[F[_], G[_]](implicit f: LocallyConcrete[F], g: Linear[G])
     extends ComposeAdditive1[F, G]
-    with Linear[({type T[A] = F[G[A]]})#T] {
+    with Linear[({type T[A] = (F[G[A]])})#T] {
     override def mull[A](a: A, v: F[G[A]])(implicit field: Field[A]): F[G[A]] =
       f.mapLC(v)(g.mull(a, _))(g.additive[A], g.additive[A])
     override def mulr[A](v: F[G[A]], a: A)(implicit field: Field[A]): F[G[A]] =
@@ -27,7 +31,7 @@ object Compose {
 
   class ComposeNormed[F[_], G[_]](implicit f: LocallyConcrete[F], g: Normed[G])
     extends ComposeLinear[F, G]
-    with Normed[({type T[A] = F[G[A]]})#T] {
+    with Normed[({type T[A] = (F[G[A]])})#T] {
     override def sum[A](v: F[G[A]])(implicit a: Additive[A]): A =
       f.sum(f.mapLC(v)(g.sum(_))(g.additive[A], a))
     override def taxicab[A](v: F[G[A]])(implicit a: Analytic[A]): A =
@@ -38,7 +42,7 @@ object Compose {
 
   class ComposeLocallyConcrete[F[_], G[_]](implicit f_ : LocallyConcrete[F], g_ : LocallyConcrete[G])
     extends ComposeNormed[F, G]
-    with LocallyConcrete[({type T[A] = F[G[A]]})#T] {
+    with LocallyConcrete[({type T[A] = (F[G[A]])})#T] {
     val f = f_
     val g = g_
 
@@ -101,7 +105,7 @@ object Compose {
 
   class ComposeConcrete[F[_], G[_]](implicit f_ : Concrete[F], g_ : Concrete[G])
     extends ComposeLocallyConcrete[F, G]
-    with Concrete[({type T[A] = F[G[A]]})#T] {
+    with Concrete[({type T[A] = (F[G[A]])})#T] {
     override val f = f_
     override val g = g_
 
@@ -139,18 +143,18 @@ object Compose {
   }
 
   implicit def additive1[F[_], G[_]]
-    (implicit f: Concrete[F], g: Additive1[G]): Additive1[({type T[A] = F[G[A]]})#T] =
+    (implicit f: Concrete[F], g: Additive1[G]): Additive1[Compose[F, G]#Type] =
     new ComposeAdditive1[F, G]()
   implicit def linear[F[_], G[_]]
-    (implicit f: Concrete[F], g: Linear[G]): Linear[({type T[A] = F[G[A]]})#T] =
+    (implicit f: Concrete[F], g: Linear[G]): Linear[Compose[F, G]#Type] =
     new ComposeLinear[F, G]()
   implicit def normed[F[_], G[_]]
-    (implicit f: Concrete[F], g: Normed[G]): Normed[({type T[A] = F[G[A]]})#T] =
+    (implicit f: Concrete[F], g: Normed[G]): Normed[Compose[F, G]#Type] =
     new ComposeNormed[F, G]()
   implicit def locallyConcrete[F[_], G[_]]
-    (implicit f: LocallyConcrete[F], g: LocallyConcrete[G]): LocallyConcrete[({type T[A] = F[G[A]]})#T] =
+    (implicit f: LocallyConcrete[F], g: LocallyConcrete[G]): LocallyConcrete[Compose[F, G]#Type] =
     new ComposeLocallyConcrete[F, G]()
   implicit def concrete[F[_], G[_]]
-    (implicit f: Concrete[F], g: Concrete[G]): Concrete[({type T[A] = F[G[A]]})#T] =
+    (implicit f: Concrete[F], g: Concrete[G]): Concrete[Compose[F, G]#Type] =
     new ComposeConcrete[F, G]()
 }

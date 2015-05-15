@@ -21,8 +21,8 @@ object Map {
 
   class MapNormed[K] extends MapLinear[K] with Normed[({type T[A] = Map[K, A]})#T] {
     override def sum[F](v: Map[K, F])(implicit f: Additive[F]): F = v.foldLeft(f.zero){case (x, (_, y)) => f.add(x, y)}
-    override def dot[F](u: Map[K, F], v: Map[K, F])(implicit f: Field[F]): F = sum(u.intersectWith(v)(f.mul(_, _)))
-    override def taxicab[F](v: Map[K, F])(implicit f: Analytic[F]): F = sum(v.mapValues(f.abs(_)))
+    override def dot[F](u: Map[K, F], v: Map[K, F])(implicit f: Field[F]): F = sum(u.intersectWith(v)(f.mul))
+    override def taxicab[F](v: Map[K, F])(implicit f: Analytic[F]): F = sum(v.mapValues(f.abs))
   }
 
   class MapLocallyConcrete[K] (implicit e: Enumerate[K]) extends MapNormed[K] with LocallyConcrete[({type T[A] = Map[K, A]})#T] {

@@ -1,48 +1,38 @@
-import java.io.{FileInputStream, ObjectInputStream, FileOutputStream, ObjectOutputStream}
-
-import cml.algebra.traits._
-import cml.models._
 import cml.algebra
+import cml.algebra.traits._
 import cml.algebra.Real._
-import cml.algebra.ad.Forward._
+import cml.models._
 import shapeless.Nat
+
 import scala.util.Random
+import scalaz._
 
 object ModelTest extends App {
-  implicit val vecIn = algebra.Vector(Nat(5))
+  implicit val vecWord = algebra.Vector(Nat(40))
+  implicit val vecPair = algebra.Product[vecWord.Type, vecWord.Type]
   implicit val vecHidden = algebra.Vector(Nat(20))
-  implicit val vecOut = algebra.Vector(Nat(1))
+  implicit val out = algebra.Scalar
+  type VecTree[A] = algebra.Compose[Tree, vecWord.Type]#Type[A]
 
-  val model = Chain4(
-    LinearMap[vecIn.Type, vecHidden.Type],
+  val model = Chain5(
+    Reduce[Tree, vecWord.Type](
+      LinearMap[vecPair.Type, vecWord.Type]
+    ) : Model[VecTree, vecWord.Type],
+    LinearMap[vecWord.Type, vecHidden.Type],
     Pointwise[vecHidden.Type](AnalyticMap.sigmoid),
-    LinearMap[vecHidden.Type, vecOut.Type],
-    Pointwise[vecOut.Type](AnalyticMap.sigmoid)
+    LinearMap[vecHidden.Type, out.Type],
+    Pointwise[out.Type](AnalyticMap.sigmoid)
   )
 
   val rng = new Random()
-  val instance = model.fill(rng.nextDouble)
-  val input = vecIn.from(Seq(1.0, 2.0, 3.0, 4.0, 5.0)).get
-  println(model(input)(instance))
+  def sign() = if (rng.nextBoolean()) 1 else -1
 
-  // Serialization
-  val oos = new ObjectOutputStream(new FileOutputStream("obj.bin"))
-  oos.writeObject(instance)
-  oos.close
+  val inst = model.fill(sign * rng.nextDouble)
+  val tree = Tree.node(vecWord.point(4.0), Stream(
+    Tree.leaf(vecWord.point(2.0)),
+    Tree.leaf(vecWord.point(-1.0))
+  ))
 
-  val ois = new ObjectInputStream(new FileInputStream("obj.bin"))
-  val loadedInstance = ois.readObject().asInstanceOf[model.Type[Double]]
-  ois.close
-
-  println(model(input)(loadedInstance))
-
-  // Gradient
-  import model._
-  import vecIn.functorSyntax._
-
-  val gradInput = input.map(inject(_))
-  val gradient = grad[Double, model.Type](modelInst =>
-    vecOut.index(model(gradInput)(modelInst))(0))_
-
-  println(gradient(instance))
+  println(inst)
+  println(model(tree)(inst))
 }

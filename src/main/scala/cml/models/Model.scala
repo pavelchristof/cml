@@ -12,7 +12,7 @@ trait Model[-In[_], +Out[_]] {
   /**
    * The type of model instances.
    */
-  type Type[_] <: Serializable
+  type Type[_]
 
   /**
    * Model instance is required to be a locally concrete vector space.
@@ -23,17 +23,17 @@ trait Model[-In[_], +Out[_]] {
    * Applies the model to some input.
    * @param input The input.
    * @param model The model instance.
-   * @param f Numeric operations.
-   * @tparam F The numeric type.
+   * @param field Numeric operations.
+   * @tparam A The numeric type.
    * @return The output.
    */
-  def apply[F](input: In[F])(model: Type[F])(implicit f: Analytic[F]): Out[F]
+  def apply[A](input: In[A])(model: Type[A])(implicit field: Analytic[A]): Out[A]
 
   /**
    * Creates a new model instance and fills it with some value. Only the concrete parts of the model will be
    * filled, the locally concrete vector spaces (like Maps) will be left with zeros.
    * @param x Value the model parameters will be initialized with.
-   * @tparam F The number type.
+   * @tparam A The number type.
    */
-  def fill[F](x: => F)(implicit a: Additive[F]): Type[F]
+  def fill[A](x: => A)(implicit a: Additive[A]): Type[A]
 }
