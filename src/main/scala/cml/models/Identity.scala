@@ -10,7 +10,7 @@ case class Identity[V[_]] () extends Model[V, V] {
 
   override implicit val space = vec
 
-  override def apply[F](input: V[F])(model: Type[F])(implicit f: Analytic[F]): V[F] =
+  override def apply[F](inst: Type[F])(input: V[F])(implicit f: Analytic[F]): V[F] =
     input
 
   override def fill[F](x: => F)(implicit a: Additive[F]): Type[F] =

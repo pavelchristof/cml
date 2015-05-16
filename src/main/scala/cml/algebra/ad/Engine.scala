@@ -26,32 +26,32 @@ trait Engine {
   /**
    * Differentiates a function.
    */
-  def diff[F](f: (Aug[F]) => Aug[F])(x: F)(implicit field: Field[F]): F
+  def diff[F](f: (Aug[F]) => Aug[F])(implicit field: Field[F]): (F) => F
 
   /**
    * Computes a function value and its derivative.
    */
-  def diffWithValue[F](f: (Aug[F]) => Aug[F])(x: F)(implicit field: Field[F]): (F, F)
+  def diffWithValue[F](f: (Aug[F]) => Aug[F])(implicit field: Field[F]): (F) => (F, F)
 
   /**
    * Computes the gradient of a function taking a vector as the argument.
    */
-  def grad[F, V[_]](f: (V[Aug[F]]) => Aug[F])(x: V[F])(implicit field: Field[F], space: Concrete[V]): V[F]
+  def grad[F, V[_]](f: (V[Aug[F]]) => Aug[F])(implicit field: Field[F], space: Concrete[V]): (V[F]) => V[F]
 
   /**
    * Computes the value and gradient of a function taking a vector as the argument.
    */
-  def gradWithValue[F, V[_]](f: (V[Aug[F]]) => Aug[F])(x: V[F])(implicit field: Field[F], space: Concrete[V]): (F, V[F])
+  def gradWithValue[F, V[_]](f: (V[Aug[F]]) => Aug[F])(implicit field: Field[F], space: Concrete[V]): (V[F]) => (F, V[F])
 
   /**
    * Computes the gradient of a function taking a vector as the argument.
    */
-  def gradLC[F, V[_]](f: (V[Aug[F]]) => Aug[F])(x: V[F])(implicit field: Field[F], space: LocallyConcrete[V]): V[F] =
-    grad(f)(x)(field, space.restrict(x))
+  def gradLC[F, V[_]](f: (V[Aug[F]]) => Aug[F])(implicit field: Field[F], space: LocallyConcrete[V]): (V[F]) => V[F] =
+    x => grad(f)(field, space.restrict(x))(x)
 
   /**
    * Computes the value and gradient of a function taking a vector as the argument.
    */
-  def gradWithValueLC[F, V[_]](f: (V[Aug[F]]) => Aug[F])(x: V[F])(implicit field: Field[F], space: LocallyConcrete[V]): (F, V[F]) =
-    gradWithValue(f)(x)(field, space.restrict(x))
+  def gradWithValueLC[F, V[_]](f: (V[Aug[F]]) => Aug[F])(implicit field: Field[F], space: LocallyConcrete[V]): (V[F]) => (F, V[F]) =
+    x => gradWithValue(f)(field, space.restrict(x))(x)
 }

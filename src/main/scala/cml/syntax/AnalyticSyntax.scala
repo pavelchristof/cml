@@ -4,24 +4,24 @@ import cml.algebra.traits._
 import scalaz.syntax.Ops
 
 final class AnalyticOps[F] private[syntax](val self: F)(implicit f: Analytic[F]) extends Ops[F] {
-  final def abs: F = f.abs(self)
-  final def signum: F = f.signum(self)
+  def abs: F = f.abs(self)
+  def signum: F = f.signum(self)
 
-  final def exp: F = f.exp(self)
-  final def log: F = f.log(self)
-  final def sqrt: F = f.sqrt(self)
+  def exp: F = f.exp(self)
+  def log: F = f.log(self)
+  def sqrt: F = f.sqrt(self)
 
-  final def sin: F = f.sin(self)
-  final def cos: F = f.cos(self)
-  final def tan: F = f.tan(self)
+  def sin: F = f.sin(self)
+  def cos: F = f.cos(self)
+  def tan: F = f.tan(self)
 
-  final def asin: F = f.asin(self)
-  final def acos: F = f.acos(self)
-  final def atan: F = f.atan(self)
+  def asin: F = f.asin(self)
+  def acos: F = f.acos(self)
+  def atan: F = f.atan(self)
 
-  final def sinh: F = f.sinh(self)
-  final def cosh: F = f.cosh(self)
-  final def tanh: F = f.tanh(self)
+  def sinh: F = f.sinh(self)
+  def cosh: F = f.cosh(self)
+  def tanh: F = f.tanh(self)
 }
 
 trait ToAnalyticOps extends ToFieldOps {

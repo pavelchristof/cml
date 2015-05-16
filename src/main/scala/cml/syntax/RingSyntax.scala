@@ -4,7 +4,8 @@ import cml.algebra.traits._
 import scalaz.syntax.Ops
 
 final class RingOps[F] private[syntax](val self: F)(implicit f: Ring[F]) extends Ops[F] {
-  final def *(x: F): F = f.mul(self, x)
+  def *(x: F): F = f.mul(self, x)
+  def square: F = f.mul(self, self)
 }
 
 trait ToRingOps extends ToAdditiveOps {

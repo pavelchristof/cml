@@ -105,20 +105,20 @@ object Forward extends Engine {
   /**
    * Differentiates a function.
    */
-  override def diff[F](f: (Aug[F]) => Aug[F])(x: F)(implicit field: Field[F]): F =
-    diffWithValue(f)(x)._2
+  override def diff[F](f: (Aug[F]) => Aug[F])(implicit field: Field[F]): (F) => F =
+    diffWithValue(f)(field)(_)._2
 
   /**
    * Computes a function value and its derivative.
    */
-  override def diffWithValue[F](f: (Aug[F]) => Aug[F])(x: F)(implicit field: Field[F]): (F, F) =
-    f((x, field.one))
+  override def diffWithValue[F](f: (Aug[F]) => Aug[F])(implicit field: Field[F]): (F) => (F, F) =
+    x => f((x, field.one))
 
   /**
    * Computes the gradient of a function taking a vector as the argument.
    */
-  override def grad[F, V[_]](f: (V[Aug[F]]) => Aug[F])(x: V[F])
-      (implicit field: Field[F], space: Concrete[V]): V[F] = {
+  override def grad[F, V[_]](f: (V[Aug[F]]) => Aug[F])
+      (implicit field: Field[F], space: Concrete[V]): (V[F]) => V[F] = x => {
     space.tabulate(i => {
       val input = space.tabulate(j =>
         (space.index(x)(i), if (i == j) field.one else field.zero))
@@ -129,9 +129,9 @@ object Forward extends Engine {
   /**
    * Computes the value and gradient of a function taking a vector as the argument.
    */
-  override def gradWithValue[F, V[_]](f: (V[Aug[F]]) => Aug[F])(x: V[F])
-      (implicit field: Field[F], space: Concrete[V]): (F, V[F]) = {
+  override def gradWithValue[F, V[_]](f: (V[Aug[F]]) => Aug[F])
+      (implicit field: Field[F], space: Concrete[V]): (V[F]) => (F, V[F]) = x => {
     val value = f(space.tabulate(i => (space.index(x)(i), field.zero)))._1
-    (value, grad(f)(x))
+    (value, grad(f)(field, space)(x))
   }
 }

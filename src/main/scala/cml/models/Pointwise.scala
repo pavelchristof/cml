@@ -14,7 +14,7 @@ case class Pointwise[V[_]] (
 
   override implicit val space = vec
 
-  def apply[F](input: V[F])(model: Type[F])(implicit field: Analytic[F]): V[F] =
+  def apply[F](inst: Type[F])(input: V[F])(implicit field: Analytic[F]): V[F] =
     c.map(input)(f(_))
 
   override def fill[F](x: => F)(implicit a: Additive[F]): Type[F] =

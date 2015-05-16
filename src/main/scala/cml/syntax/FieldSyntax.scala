@@ -4,7 +4,7 @@ import cml.algebra.traits._
 import scalaz.syntax.Ops
 
 final class FieldOps[F] private[syntax](val self: F)(implicit f: Field[F]) extends Ops[F] {
-  final def /(x: F): F = f.div(self, x)
+  def /(x: F): F = f.div(self, x)
 }
 
 trait ToFieldOps extends ToRingOps {

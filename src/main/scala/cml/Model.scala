@@ -11,11 +11,11 @@ import scalaz.Functor
  * @tparam In The input type, parametrized by the numeric type.
  * @tparam Out The output type, parametrized by the numeric type.
  */
-trait Model[-In[_], +Out[_]] {
+trait Model[In[_], Out[_]] {
   /**
    * The type of model instances.
    */
-  type Type[_]
+  type Type[A]
 
   /**
    * Model instance is required to be a locally concrete vector space.
@@ -25,12 +25,12 @@ trait Model[-In[_], +Out[_]] {
   /**
    * Applies the model to some input.
    * @param input The input.
-   * @param model The model instance.
+   * @param inst The model instance.
    * @param field Numeric operations.
    * @tparam A The numeric type.
    * @return The output.
    */
-  def apply[A](input: In[A])(model: Type[A])(implicit field: Analytic[A]): Out[A]
+  def apply[A](inst: Type[A])(input: In[A])(implicit field: Analytic[A]): Out[A]
 
   /**
    * Creates a new model instance and fills it with some value. Only the finite parts of the model will be
@@ -45,4 +45,14 @@ trait Model[-In[_], +Out[_]] {
    */
   def symmetryBreaking[A](random: Random)(implicit a: Analytic[A]): Type[A] =
     fill(a.fromDouble((random.nextDouble() - 0.5) * 0.02))
+
+  /**
+   * Scores the data set.
+   */
+  def score[A](inst: Type[A])(data: Seq[(In[A], Out[A])])(implicit an: Analytic[A]): Seq[ScoredSample[In[A], Out[A]]] =
+    data.map{ case (in, out) => ScoredSample(
+      input = in,
+      expected = out,
+      actual = apply(inst)(in)
+    )}
 }

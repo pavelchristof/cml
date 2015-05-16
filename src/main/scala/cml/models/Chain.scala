@@ -3,7 +3,7 @@ package cml.models
 import cml.algebra.traits._
 import cml.{Model, algebra}
 
-case class Chain2[-In[_], Mid[_], +Out[_]] (
+case class Chain2[In[_], Mid[_], Out[_]] (
   m1: Model[In, Mid],
   m2: Model[Mid, Out]
 ) extends Model[In, Out] {
@@ -11,14 +11,14 @@ case class Chain2[-In[_], Mid[_], +Out[_]] (
 
   override implicit val space = algebra.Product.locallyConcrete[m1.Type, m2.Type](m1.space, m2.space)
 
-  override def apply[F](input: In[F])(model: Type[F])(implicit f: Analytic[F]): Out[F] =
-    m2(m1(input)(model._1))(model._2)
+  override def apply[F](inst: Type[F])(input: In[F])(implicit f: Analytic[F]): Out[F] =
+    m2(inst._2)(m1(inst._1)(input))
 
   override def fill[F](x: => F)(implicit a: Additive[F]) =
     (m1.fill(x), m2.fill(x))
 }
 
-case class Chain3[-In[_], Mid1[_], Mid2[_], +Out[_]] (
+case class Chain3[In[_], Mid1[_], Mid2[_], Out[_]] (
   m1: Model[In, Mid1],
   m2: Model[Mid1, Mid2],
   m3: Model[Mid2, Out]
@@ -29,14 +29,14 @@ case class Chain3[-In[_], Mid1[_], Mid2[_], +Out[_]] (
 
   override implicit val space = algebra.Product.locallyConcrete[m1.Type, chain.Type](m1.space, chain.space)
 
-  override def apply[F](input: In[F])(model: Type[F])(implicit f: Analytic[F]): Out[F] =
-    chain(m1(input)(model._1))(model._2)
+  override def apply[F](inst: Type[F])(input: In[F])(implicit f: Analytic[F]): Out[F] =
+    chain(inst._2)(m1(inst._1)(input))
 
   override def fill[F](x: => F)(implicit a: Additive[F]) =
     (m1.fill(x), chain.fill(x))
 }
 
-case class Chain4[-In[_], Mid1[_], Mid2[_], Mid3[_], +Out[_]] (
+case class Chain4[In[_], Mid1[_], Mid2[_], Mid3[_], Out[_]] (
   m1: Model[In, Mid1],
   m2: Model[Mid1, Mid2],
   m3: Model[Mid2, Mid3],
@@ -48,14 +48,14 @@ case class Chain4[-In[_], Mid1[_], Mid2[_], Mid3[_], +Out[_]] (
 
   override implicit val space = algebra.Product.locallyConcrete[m1.Type, chain.Type](m1.space, chain.space)
 
-  override def apply[F](input: In[F])(model: Type[F])(implicit f: Analytic[F]): Out[F] =
-    chain(m1(input)(model._1))(model._2)
+  override def apply[F](inst: Type[F])(input: In[F])(implicit f: Analytic[F]): Out[F] =
+    chain(inst._2)(m1(inst._1)(input))
 
   override def fill[F](x: => F)(implicit a: Additive[F]) =
     (m1.fill(x), chain.fill(x))
 }
 
-case class Chain5[-In[_], Mid1[_], Mid2[_], Mid3[_], Mid4[_], +Out[_]] (
+case class Chain5[In[_], Mid1[_], Mid2[_], Mid3[_], Mid4[_], Out[_]] (
   m1: Model[In, Mid1],
   m2: Model[Mid1, Mid2],
   m3: Model[Mid2, Mid3],
@@ -68,14 +68,14 @@ case class Chain5[-In[_], Mid1[_], Mid2[_], Mid3[_], Mid4[_], +Out[_]] (
 
   override implicit val space = algebra.Product.locallyConcrete[m1.Type, chain.Type](m1.space, chain.space)
 
-  override def apply[F](input: In[F])(model: Type[F])(implicit f: Analytic[F]): Out[F] =
-    chain(m1(input)(model._1))(model._2)
+  override def apply[F](inst: Type[F])(input: In[F])(implicit f: Analytic[F]): Out[F] =
+    chain(inst._2)(m1(inst._1)(input))
 
   override def fill[F](x: => F)(implicit a: Additive[F]) =
     (m1.fill(x), chain.fill(x))
 }
 
-case class Chain6[-In[_], Mid1[_], Mid2[_], Mid3[_], Mid4[_], Mid5[_], +Out[_]] (
+case class Chain6[In[_], Mid1[_], Mid2[_], Mid3[_], Mid4[_], Mid5[_], Out[_]] (
   m1: Model[In, Mid1],
   m2: Model[Mid1, Mid2],
   m3: Model[Mid2, Mid3],
@@ -89,14 +89,14 @@ case class Chain6[-In[_], Mid1[_], Mid2[_], Mid3[_], Mid4[_], Mid5[_], +Out[_]] 
 
   override implicit val space = algebra.Product.locallyConcrete[m1.Type, chain.Type](m1.space, chain.space)
 
-  override def apply[F](input: In[F])(model: Type[F])(implicit f: Analytic[F]): Out[F] =
-    chain(m1(input)(model._1))(model._2)
+  override def apply[F](inst: Type[F])(input: In[F])(implicit f: Analytic[F]): Out[F] =
+    chain(inst._2)(m1(inst._1)(input))
 
   override def fill[F](x: => F)(implicit a: Additive[F]) =
     (m1.fill(x), chain.fill(x))
 }
 
-case class Chain7[-In[_], Mid1[_], Mid2[_], Mid3[_], Mid4[_], Mid5[_], Mid6[_], +Out[_]] (
+case class Chain7[In[_], Mid1[_], Mid2[_], Mid3[_], Mid4[_], Mid5[_], Mid6[_], Out[_]] (
   m1: Model[In, Mid1],
   m2: Model[Mid1, Mid2],
   m3: Model[Mid2, Mid3],
@@ -111,8 +111,8 @@ case class Chain7[-In[_], Mid1[_], Mid2[_], Mid3[_], Mid4[_], Mid5[_], Mid6[_], 
 
   override implicit val space = algebra.Product.locallyConcrete[m1.Type, chain.Type](m1.space, chain.space)
 
-  override def apply[F](input: In[F])(model: Type[F])(implicit f: Analytic[F]): Out[F] =
-    chain(m1(input)(model._1))(model._2)
+  override def apply[F](inst: Type[F])(input: In[F])(implicit f: Analytic[F]): Out[F] =
+    chain(inst._2)(m1(inst._1)(input))
 
   override def fill[F](x: => F)(implicit a: Additive[F]) =
     (m1.fill(x), chain.fill(x))
