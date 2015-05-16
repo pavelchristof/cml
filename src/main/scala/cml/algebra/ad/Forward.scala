@@ -12,7 +12,7 @@ object Forward extends Engine {
       (0, 0)
 
     override def add(x: Aug[F], y: Aug[F]): Aug[F] =
-      (x._1 + y._1, x._1 + y._1)
+      (x._1 + y._1, x._2 + y._2)
 
     override def neg(x: Aug[F]): Aug[F] =
       (-x._1, -x._2)
