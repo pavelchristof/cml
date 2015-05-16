@@ -11,6 +11,7 @@ object Real {
 
     override def mul(x: Double, y: Double): Double = x * y
     override val one: Double = 1
+    override def fromInt(n: Int): Double = n
 
     override def div(x: Double, y: Double): Double = x / y
     override def inv(x: Double): Double = 1 / x
@@ -29,5 +30,6 @@ object Real {
     override def sinh(x: Double): Double = math.sinh(x)
     override def cosh(x: Double): Double = math.cosh(x)
     override def tanh(x: Double): Double = math.tanh(x)
+    override def fromDouble(x: Double): Double = x
   }
 }

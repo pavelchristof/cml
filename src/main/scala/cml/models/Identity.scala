@@ -8,7 +8,7 @@ case class Identity[V[_]] () extends Model[V, V] {
   val vec = algebra.Vector(Nat(0))
   override type Type[A] = vec.Type[A]
 
-  override implicit val locallyConcrete = vec
+  override implicit val space = vec
 
   override def apply[F](input: V[F])(model: Type[F])(implicit f: Analytic[F]): V[F] =
     input

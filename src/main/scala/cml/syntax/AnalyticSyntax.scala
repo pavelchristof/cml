@@ -30,5 +30,6 @@ trait ToAnalyticOps extends ToFieldOps {
 
 trait AnalyticSyntax[F] extends FieldSyntax[F] {
   implicit def ToAnalyticOps(v: F): AnalyticOps[F] = new AnalyticOps[F](v)(AnalyticSyntax.this.F)
+  def FromDouble(x: Double): F = F.fromDouble(x)
   def F: Analytic[F]
 }

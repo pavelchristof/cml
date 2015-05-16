@@ -9,7 +9,7 @@ case class Softmax[V[_]] (
 ) extends Model[V, V] {
   val vec = algebra.Vector(Nat(0))
   override type Type[A] = vec.Type[A]
-  override implicit val locallyConcrete = vec
+  override implicit val space = vec
 
   def apply[A](input: V[A])(model: Type[A])(implicit field: Analytic[A]): V[A] = {
     val expd = lc.mapLC(input)(field.exp)

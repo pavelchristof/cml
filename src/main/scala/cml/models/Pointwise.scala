@@ -12,7 +12,7 @@ case class Pointwise[V[_]] (
   val vec = algebra.Vector(Nat(0))
   override type Type[A] = vec.Type[A]
 
-  override implicit val locallyConcrete = vec
+  override implicit val space = vec
 
   def apply[F](input: V[F])(model: Type[F])(implicit field: Analytic[F]): V[F] =
     c.map(input)(f(_))

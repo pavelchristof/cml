@@ -2,6 +2,9 @@ package cml
 
 import cml.algebra.traits._
 
+import scala.util.Random
+import scalaz.Functor
+
 /**
  * Machine learning models expressible as a differentiable function, mapping some input to some output.
  *
@@ -17,7 +20,7 @@ trait Model[-In[_], +Out[_]] {
   /**
    * Model instance is required to be a locally concrete vector space.
    */
-  implicit val locallyConcrete: LocallyConcrete[Type]
+  implicit val space: LocallyConcrete[Type]
 
   /**
    * Applies the model to some input.
@@ -36,4 +39,10 @@ trait Model[-In[_], +Out[_]] {
    * @tparam A The number type.
    */
   def fill[A](x: => A)(implicit a: Additive[A]): Type[A]
+
+  /**
+   * Initializes the model with small, random real numbers to break symmetry.
+   */
+  def symmetryBreaking[A](random: Random)(implicit a: Analytic[A]): Type[A] =
+    fill(a.fromDouble((random.nextDouble() - 0.5) * 0.02))
 }

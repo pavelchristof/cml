@@ -10,7 +10,7 @@ case class LinearMap[In[_], Out[_]] (
 ) extends Model[In, Out] {
   override type Type[A] = Out[In[A]]
 
-  override implicit val locallyConcrete = new Compose.ComposeLocallyConcrete[Out, In]()
+  override implicit val space = new Compose.ComposeLocallyConcrete[Out, In]()
 
   override def apply[F](input: In[F])(model: Type[F])(implicit f: Analytic[F]): Out[F] =
     outLC.map(model)(inLC.dot(input, _))

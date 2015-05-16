@@ -21,7 +21,7 @@ trait Engine {
   /**
    * Injects a constant value into the augmented field.
    */
-  def inject[F](x: F)(implicit field: Field[F]): Aug[F]
+  def constant[F](x: F)(implicit field: Field[F]): Aug[F]
 
   /**
    * Differentiates a function.
@@ -42,4 +42,16 @@ trait Engine {
    * Computes the value and gradient of a function taking a vector as the argument.
    */
   def gradWithValue[F, V[_]](f: (V[Aug[F]]) => Aug[F])(x: V[F])(implicit field: Field[F], space: Concrete[V]): (F, V[F])
+
+  /**
+   * Computes the gradient of a function taking a vector as the argument.
+   */
+  def gradLC[F, V[_]](f: (V[Aug[F]]) => Aug[F])(x: V[F])(implicit field: Field[F], space: LocallyConcrete[V]): V[F] =
+    grad(f)(x)(field, space.restrict(x))
+
+  /**
+   * Computes the value and gradient of a function taking a vector as the argument.
+   */
+  def gradWithValueLC[F, V[_]](f: (V[Aug[F]]) => Aug[F])(x: V[F])(implicit field: Field[F], space: LocallyConcrete[V]): (F, V[F]) =
+    gradWithValue(f)(x)(field, space.restrict(x))
 }

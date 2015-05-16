@@ -13,7 +13,7 @@ case class Reduce[-F[_], R[_]] (
 ) extends Model[Compose[F, R]#Type, R] {
   type Type[A] = m.Type[A]
 
-  override implicit val locallyConcrete = m.locallyConcrete
+  override implicit val space = m.space
 
   override def apply[A](input: F[R[A]])(model: Type[A])(implicit field: Analytic[A]): R[A] =
     foldable.fold1(input)(new Semigroup[R[A]] {

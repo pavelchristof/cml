@@ -13,5 +13,7 @@ trait ToFieldOps extends ToRingOps {
 
 trait FieldSyntax[F] extends RingSyntax[F] {
   implicit def ToFieldOps(v: F): FieldOps[F] = new FieldOps[F](v)(FieldSyntax.this.F)
+  implicit def FromInt(n: Int): F = F.fromInt(n)
+
   def F: Field[F]
 }

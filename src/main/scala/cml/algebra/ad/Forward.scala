@@ -9,7 +9,7 @@ object Forward extends Engine {
     import f.fieldSyntax._
 
     override val zero: Aug[F] =
-      (f.zero, f.zero)
+      (0, 0)
 
     override def add(x: Aug[F], y: Aug[F]): Aug[F] =
       (x._1 + y._1, x._1 + y._1)
@@ -18,13 +18,16 @@ object Forward extends Engine {
       (-x._1, -x._2)
 
     override val one: Aug[F] =
-      (f.one, f.zero)
+      (1, 0)
 
     override def mul(x: Aug[F], y: Aug[F]): Aug[F] =
       (x._1 * y._1, x._1 * y._2 + x._2 * y._1)
 
     override def inv(x: Aug[F]): Aug[F] =
       (f.inv(x._1), -x._2 / (x._1 * x._1))
+
+    override def fromInt(n: Int): (F, F) =
+      (n, 0)
   }
 
   private class AugAnalytic[F](implicit f: Analytic[F]) extends AugField[F] with Analytic[Aug[F]] {
@@ -34,7 +37,7 @@ object Forward extends Engine {
       (x._1.abs, x._2.signum)
 
     override def signum(x: Aug[F]): Aug[F] =
-      (x._1.signum, f.zero)
+      (x._1.signum, 0)
 
     override def exp(x: Aug[F]): Aug[F] = {
       val y = x._1.exp
@@ -56,13 +59,13 @@ object Forward extends Engine {
       (x._1.cos, -x._2 * x._1.sin)
 
     override def tan(x: Aug[F]): Aug[F] =
-      (x._1.tan, (x._2 + x._2) / ((x._1 + x._1).cos + f.one))
+      (x._1.tan, (x._2 + x._2) / ((x._1 + x._1).cos + 1))
 
     override def asin(x: Aug[F]): Aug[F] =
-      (x._1.asin, x._2 / (f.one - x._1 * x._1).sqrt)
+      (x._1.asin, x._2 / (-x._1 * x._1 + 1).sqrt)
 
     override def acos(x: Aug[F]): Aug[F] =
-      (x._1.acos, -x._2 / (f.one - x._1 * x._1).sqrt)
+      (x._1.acos, -x._2 / (-x._1 * x._1 + 1).sqrt)
 
     override def atan(x: Aug[F]): Aug[F] =
       (x._1.atan, x._2 / (x._1 * x._1 + f.one))
@@ -74,11 +77,13 @@ object Forward extends Engine {
       (x._1.cosh, x._2 * x._1.sinh)
 
     override def tanh(x: Aug[F]): Aug[F] = {
-      val four = f.one + f.one + f.one + f.one
       val q = x._1.cosh
-      val p = (x._1 + x._1).cosh + f.one
-      (x._1.tanh, (four * x._2 * q * q) / (p * p))
+      val p = (x._1 + x._1).cosh + 1
+      (x._1.tanh, (x._2 * q * q * 4) / (p * p))
     }
+
+    override def fromDouble(x: Double): (F, F) =
+      (f.fromDouble(x), f.zero)
   }
 
   /**
@@ -94,7 +99,7 @@ object Forward extends Engine {
   /**
    * Injects a constant value into the augmented field.
    */
-  override def inject[F](x: F)(implicit field: Field[F]): Aug[F] =
+  override def constant[F](x: F)(implicit field: Field[F]): Aug[F] =
     (x, field.zero)
 
   /**

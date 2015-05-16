@@ -9,7 +9,7 @@ case class Chain2[-In[_], Mid[_], +Out[_]] (
 ) extends Model[In, Out] {
   override type Type[A] = (m1.Type[A], m2.Type[A])
 
-  override implicit val locallyConcrete = algebra.Product.locallyConcrete[m1.Type, m2.Type](m1.locallyConcrete, m2.locallyConcrete)
+  override implicit val space = algebra.Product.locallyConcrete[m1.Type, m2.Type](m1.space, m2.space)
 
   override def apply[F](input: In[F])(model: Type[F])(implicit f: Analytic[F]): Out[F] =
     m2(m1(input)(model._1))(model._2)
@@ -27,7 +27,7 @@ case class Chain3[-In[_], Mid1[_], Mid2[_], +Out[_]] (
 
   override type Type[A] = (m1.Type[A], chain.Type[A])
 
-  override implicit val locallyConcrete = algebra.Product.locallyConcrete[m1.Type, chain.Type](m1.locallyConcrete, chain.locallyConcrete)
+  override implicit val space = algebra.Product.locallyConcrete[m1.Type, chain.Type](m1.space, chain.space)
 
   override def apply[F](input: In[F])(model: Type[F])(implicit f: Analytic[F]): Out[F] =
     chain(m1(input)(model._1))(model._2)
@@ -46,7 +46,7 @@ case class Chain4[-In[_], Mid1[_], Mid2[_], Mid3[_], +Out[_]] (
 
   override type Type[A] = (m1.Type[A], chain.Type[A])
 
-  override implicit val locallyConcrete = algebra.Product.locallyConcrete[m1.Type, chain.Type](m1.locallyConcrete, chain.locallyConcrete)
+  override implicit val space = algebra.Product.locallyConcrete[m1.Type, chain.Type](m1.space, chain.space)
 
   override def apply[F](input: In[F])(model: Type[F])(implicit f: Analytic[F]): Out[F] =
     chain(m1(input)(model._1))(model._2)
@@ -66,7 +66,7 @@ case class Chain5[-In[_], Mid1[_], Mid2[_], Mid3[_], Mid4[_], +Out[_]] (
 
   override type Type[A] = (m1.Type[A], chain.Type[A])
 
-  override implicit val locallyConcrete = algebra.Product.locallyConcrete[m1.Type, chain.Type](m1.locallyConcrete, chain.locallyConcrete)
+  override implicit val space = algebra.Product.locallyConcrete[m1.Type, chain.Type](m1.space, chain.space)
 
   override def apply[F](input: In[F])(model: Type[F])(implicit f: Analytic[F]): Out[F] =
     chain(m1(input)(model._1))(model._2)
@@ -87,7 +87,7 @@ case class Chain6[-In[_], Mid1[_], Mid2[_], Mid3[_], Mid4[_], Mid5[_], +Out[_]] 
 
   override type Type[A] = (m1.Type[A], chain.Type[A])
 
-  override implicit val locallyConcrete = algebra.Product.locallyConcrete[m1.Type, chain.Type](m1.locallyConcrete, chain.locallyConcrete)
+  override implicit val space = algebra.Product.locallyConcrete[m1.Type, chain.Type](m1.space, chain.space)
 
   override def apply[F](input: In[F])(model: Type[F])(implicit f: Analytic[F]): Out[F] =
     chain(m1(input)(model._1))(model._2)
@@ -109,7 +109,7 @@ case class Chain7[-In[_], Mid1[_], Mid2[_], Mid3[_], Mid4[_], Mid5[_], Mid6[_], 
 
   override type Type[A] = (m1.Type[A], chain.Type[A])
 
-  override implicit val locallyConcrete = algebra.Product.locallyConcrete[m1.Type, chain.Type](m1.locallyConcrete, chain.locallyConcrete)
+  override implicit val space = algebra.Product.locallyConcrete[m1.Type, chain.Type](m1.space, chain.space)
 
   override def apply[F](input: In[F])(model: Type[F])(implicit f: Analytic[F]): Out[F] =
     chain(m1(input)(model._1))(model._2)

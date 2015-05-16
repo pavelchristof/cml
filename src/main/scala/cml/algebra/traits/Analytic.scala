@@ -25,5 +25,7 @@ trait Analytic[T] extends Field[T] {
   def cosh(x: T): T
   def tanh(x: T): T
 
+  def fromDouble(x: Double): T
+
   val analyticSyntax = new AnalyticSyntax[T] { def F = Analytic.this }
 }
