@@ -18,7 +18,7 @@ object DifferentiationTest extends Properties("Differentiation") {
       override def description = "constant"
       override def value[A](x: A)(implicit an: Analytic[A]): A = {
         import an.analyticSyntax._
-        42
+        an.fromDouble(42).abs + an.fromInt(32) * an.fromDouble(12).signum
       }
       override def deriv[A](x: A)(implicit an: Analytic[A]): A = {
         import an.analyticSyntax._
@@ -37,6 +37,17 @@ object DifferentiationTest extends Properties("Differentiation") {
       }
     },
     new Fun {
+      override def description = "polynomial2"
+      override def value[A](x: A)(implicit an: Analytic[A]): A = {
+        import an.analyticSyntax._
+        (x * x * x * x).sqrt
+      }
+      override def deriv[A](x: A)(implicit an: Analytic[A]): A = {
+        import an.analyticSyntax._
+        (x * x * x * 2) / (x * x * x * x).sqrt
+      }
+    },
+    new Fun {
       override def description = "exp"
       override def value[A](x: A)(implicit an: Analytic[A]): A = {
         import an.analyticSyntax._
@@ -45,6 +56,17 @@ object DifferentiationTest extends Properties("Differentiation") {
       override def deriv[A](x: A)(implicit an: Analytic[A]): A = {
         import an.analyticSyntax._
         x.exp
+      }
+    },
+    new Fun {
+      override def description = "exp after log"
+      override def value[A](x: A)(implicit an: Analytic[A]): A = {
+        import an.analyticSyntax._
+        x.log.exp
+      }
+      override def deriv[A](x: A)(implicit an: Analytic[A]): A = {
+        import an.analyticSyntax._
+        1
       }
     },
     new Fun {
@@ -90,11 +112,66 @@ object DifferentiationTest extends Properties("Differentiation") {
         import an.analyticSyntax._
         0
       }
+    },
+    new Fun {
+      override def description = "sin after asin"
+      override def value[A](x: A)(implicit an: Analytic[A]): A = {
+        import an.analyticSyntax._
+        x.asin.sin
+      }
+      override def deriv[A](x: A)(implicit an: Analytic[A]): A = {
+        import an.analyticSyntax._
+        1
+      }
+    },
+    new Fun {
+      override def description = "cos after acos"
+      override def value[A](x: A)(implicit an: Analytic[A]): A = {
+        import an.analyticSyntax._
+        x.acos.cos
+      }
+      override def deriv[A](x: A)(implicit an: Analytic[A]): A = {
+        import an.analyticSyntax._
+        1
+      }
+    },
+    new Fun {
+      override def description = "tan after atan"
+      override def value[A](x: A)(implicit an: Analytic[A]): A = {
+        import an.analyticSyntax._
+        x.atan.tan
+      }
+      override def deriv[A](x: A)(implicit an: Analytic[A]): A = {
+        import an.analyticSyntax._
+        1
+      }
+    },
+    new Fun {
+      override def description = "cosh^2 - sinh^2 = 1"
+      override def value[A](x: A)(implicit an: Analytic[A]): A = {
+        import an.analyticSyntax._
+        x.cosh.square - x.sinh.square
+      }
+      override def deriv[A](x: A)(implicit an: Analytic[A]): A = {
+        import an.analyticSyntax._
+        0
+      }
+    },
+    new Fun {
+      override def description = "tanh definition"
+      override def value[A](x: A)(implicit an: Analytic[A]): A = {
+        import an.analyticSyntax._
+        x.tanh - (x.exp - (-x).exp) / (x.exp + (-x).exp)
+      }
+      override def deriv[A](x: A)(implicit an: Analytic[A]): A = {
+        import an.analyticSyntax._
+        0
+      }
     }
   )
 
   def closeEnough(x: Double, y: Double): Boolean = {
-    val eps = 0.0001
+    val eps = 0.001
     x == y || (x - y).abs <= eps * (x.abs.max(y.abs).max(eps))
   }
 
@@ -105,7 +182,10 @@ object DifferentiationTest extends Properties("Differentiation") {
       property(s"$name.${fun.description}") = forAll { (x: Double) => {
         val expected = fun.deriv(x)
         val actual = computedDeriv(x)
-        expected.isNaN || actual.isNaN || closeEnough(expected, actual)
+        expected.isNaN || actual.isNaN || closeEnough(expected, actual) || {
+          println(s"Expected: $expected, actual $actual")
+          false
+        }
       }}
     }
   }
