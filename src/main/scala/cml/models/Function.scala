@@ -4,16 +4,14 @@ import cml._
 import cml.algebra.Constant
 import cml.algebra.traits._
 
-
-
 case class Function[K, V[_]] (
   implicit e: Enumerate[K],
   vlc: LocallyConcrete[V]
-  ) extends Model[({type T[A] = Constant[K, A]}), V] {
+  ) extends Model[({type T[A] = Constant[K, A]})#T, V] {
   override type Type[A] = Map[K, V[A]]
 
   override implicit val space: LocallyConcrete[Type] =
-    algebra.Compose().locallyConcrete(
+    algebra.Compose[({type T[A] = Map[K, A]})#T, V].locallyConcrete(
       algebra.Map.locallyConcrete[K](e),
       vlc
     )
