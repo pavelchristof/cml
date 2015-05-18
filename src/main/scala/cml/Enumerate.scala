@@ -25,6 +25,14 @@ object Enumerate {
   }
 
   /**
+   * Enumerates nothing as there are not values of type Void.
+   */
+  def void: Enumerate[Void] = new Enumerate[Void] {
+    override val count: Option[BigInt] = Some(0)
+    override def enumerate: Stream[Void] = Stream.empty
+  }
+
+  /**
    * Enumerates all non-negative Ints up to n.
    */
   def natInt(n: Int): Enumerate[Int] = new Enumerate[Int] {

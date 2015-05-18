@@ -1,9 +1,10 @@
 package cml.models
 
 import cml._
+import cml.algebra.Constant
 import cml.algebra.traits._
 
-case class Constant[A, B] (value: A)
+
 
 case class Function[K, V[_]] (
   implicit e: Enumerate[K],
