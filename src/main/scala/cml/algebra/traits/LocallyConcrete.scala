@@ -76,6 +76,5 @@ trait LocallyConcrete[V[_]] extends Normed[V] {
    * function f uses accumulating functions such as sum(), length(), etc. Otherwise the subspace X is constant for
    * all v in V.
    */
-  def restrict[A](h: Covector[V])(v: V[A])(implicit field: Field[A]): Concrete[V] =
-    throw new NotImplementedError()
+  def restrict[A](h: Covector[V])(v: V[A])(implicit an: Analytic[A]): Concrete[V]
 }

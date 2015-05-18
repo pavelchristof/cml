@@ -68,6 +68,51 @@ object Map {
      */
     override def restrict[A](v: Map[K, A])(implicit field: Field[A]): Concrete[({type T[A] = Map[K, A]})#T] =
       new SubMap[K](v.keySet)
+
+    /**
+     * The fundamental property of locally concrete vector spaces is that for any function f on vectors polymorphic in
+     * the number type and for each vector v in V, we can factor V as X x Y where X is concrete and f(v) = f(v + y) for
+     * all y in Y. This function finds such a subspace X, not necessarily the smallest.
+     *
+     * It follows that the derivative df(x)/dy = 0 for any y in Y. As such it is enough to consider partial derivatives
+     * on X to find the gradient of f.
+     *
+     * The subspace X does not always depend on the vector v. It only depends on v (and contains restrict(v)) when the
+     * function f uses accumulating functions such as sum(), length(), etc. Otherwise the subspace X is constant for
+     * all v in V.
+     */
+    override def restrict[A](h: Covector[({type T[A] = Map[K, A]})#T])(v: Map[K, A])
+      (implicit an: Analytic[A]): Concrete[({type T[A] = Map[K, A]})#T] = {
+      val context = Context[K](false, collection.mutable.Set())
+      h[A](SpyMap(context, collection.immutable.Map()))
+      var keys = context.accessed
+      if (context.iterated)
+        keys ++= v.keySet
+      new SubMap[K](keys.toSet)
+    }
+  }
+
+  case class Context[K] (
+    var iterated: Boolean,
+    accessed: collection.mutable.Set[K]
+  )
+
+  case class SpyMap[K, A] (
+    context: Context[K],
+    content: Map[K, A]
+    ) extends Map[K, A] {
+    override def +[B1 >: A](kv: (K, B1)): Map[K, B1] = SpyMap(context, content + kv)
+    override def -(key: K): Map[K, A] = SpyMap(context, content - key)
+
+    override def get(key: K): Option[A] = {
+      context.accessed += key
+      content.get(key)
+    }
+
+    override def iterator: Iterator[(K, A)] = {
+      context.iterated = true
+      content.iterator
+    }
   }
 
   class SubMap[K](keys: Set[K]) extends Concrete[({type T[A] = Map[K, A]})#T] {

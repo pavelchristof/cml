@@ -138,6 +138,36 @@ object Compose {
       val gv: G[A] = f.sum(v)(g.additive)
       Compose[F, G].concrete(f.restrict(fv), g.restrict(gv))
     }
+
+    /**
+     * The fundamental property of locally concrete vector spaces is that for any function f on vectors polymorphic in
+     * the number type and for each vector v in V, we can factor V as X x Y where X is concrete and f(v) = f(v + y) for
+     * all y in Y. This function finds such a subspace X, not necessarily the smallest.
+     *
+     * It follows that the derivative df(x)/dy = 0 for any y in Y. As such it is enough to consider partial derivatives
+     * on X to find the gradient of f.
+     *
+     * The subspace X does not always depend on the vector v. It only depends on v (and contains restrict(v)) when the
+     * function f uses accumulating functions such as sum(), length(), etc. Otherwise the subspace X is constant for
+     * all v in V.
+     */
+    override def restrict[A](h: Covector[({type T[A] = F[G[A]]})#T])(v: F[G[A]])
+      (implicit an: Analytic[A]): Concrete[({type T[A] = F[G[A]]})#T] = {
+      val fv: F[A] = f.mapLC(v)(g.sum(_))(g.additive, an)
+      val gv: G[A] = f.sum(v)(g.additive)
+
+      val x = f.restrict(new Covector[F] {
+        override def apply[A](v: F[A])(implicit field: Analytic[A]): A =
+          h(f.mapLC[A, G[A]](v)(_ => g.zero)(field, g.additive(field)))(field)
+      })(fv)
+
+      val y = g.restrict(new Covector[G] {
+        override def apply[A](v: G[A])(implicit field: Analytic[A]): A =
+          h(x.point(v))
+      })(gv)
+
+      Compose[F, G].concrete(x, y)
+    }
   }
 
   class ComposeConcrete[F[_], G[_]](implicit f_ : Concrete[F], g_ : Concrete[G])
