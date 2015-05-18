@@ -1,8 +1,10 @@
+organization := "cml"
+
 name := "cml"
 
-version := "0.1"
+version := "0.1-SNAPSHOT"
 
-scalaVersion := "2.11.6"
+scalaVersion := "2.10.5"
 
 resolvers ++= Seq(
   Resolver.sonatypeRepo("releases"),
