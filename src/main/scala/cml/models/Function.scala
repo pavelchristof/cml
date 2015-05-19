@@ -10,14 +10,12 @@ case class Function[K, V[_]] (
   ) extends Model[({type T[A] = Constant[K, A]})#T, V] {
   override type Type[A] = Map[K, V[A]]
 
-  override implicit val space: LocallyConcrete[Type] =
-    algebra.Compose[({type T[A] = Map[K, A]})#T, V].locallyConcrete(
-      algebra.Map.locallyConcrete[K](e),
-      vlc
-    )
+  val mapSpace = algebra.Map.locallyConcrete[K](e)
+  override implicit val space =
+    algebra.Compose[({type T[A] = Map[K, A]})#T, V].locallyConcrete(mapSpace, vlc)
 
   def apply[A](inst: Type[A])(input: Constant[K, A])(implicit field: Analytic[A]): V[A] =
-    inst(input.value)
+    mapSpace.indexLC[V[A]](inst)(input.value)(vlc.additive)
 
   override def fill[A](x: => A)(implicit a: Additive[A]): Type[A] =
     Map()

@@ -152,9 +152,9 @@ object Map {
       v.values.foldRight(z)(op(_, _))
   }
 
-  def additive1[K]: Additive1[({type T[A] = Map[K, A]})#T] = new MapAdditive1[K]
-  def linear[K]: Linear[({type T[A] = Map[K, A]})#T] = new MapLinear[K]
-  def normed[K]: Normed[({type T[A] = Map[K, A]})#T] = new MapNormed[K]
-  def locallyConcrete[K](implicit e: Enumerate[K]): LocallyConcrete[({type T[A] = Map[K, A]})#T] =
+  def additive1[K] = new MapAdditive1[K]
+  def linear[K] = new MapLinear[K]
+  def normed[K] = new MapNormed[K]
+  def locallyConcrete[K](implicit e: Enumerate[K]) =
     new MapLocallyConcrete[K]
 }
