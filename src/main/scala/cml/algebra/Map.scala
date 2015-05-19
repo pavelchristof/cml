@@ -105,11 +105,13 @@ object Map {
     override def -(key: K): Map[K, A] = SpyMap(context, content - key)
 
     override def get(key: K): Option[A] = {
+      println(key)
       context.accessed += key
       content.get(key)
     }
 
     override def iterator: Iterator[(K, A)] = {
+      println("Iterated!")
       context.iterated = true
       content.iterator
     }

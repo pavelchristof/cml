@@ -49,6 +49,14 @@ object Enumerate {
   }
 
   /**
+   * Enumerates all natural numbers.
+   */
+  def natural: Enumerate[BigInt] = new Enumerate[BigInt] {
+    override val count: Option[BigInt] = None
+    override def enumerate: Stream[BigInt] = Stream.iterate(BigInt(0))(_ + 1)
+  }
+
+  /**
    * Enumerate all chars.
    */
   def char: Enumerate[Char] = new Enumerate[Char] {

@@ -1,7 +1,7 @@
 package cml.optimization
 
 import cml._
-import cml.algebra.ad
+import cml.ad
 import cml.algebra.traits._
 
 import scala.util.Random
@@ -25,7 +25,7 @@ case class GradientDescent[In[_], Out[_]] (
   )(implicit
     an: Analytic[A],
     cmp: Ordering[A],
-    diffEngine: ad.Engine
+    diffEngine: cml.ad.Engine
   ): Vector[model.Type[A]] = {
     import diffEngine._
     import model.space

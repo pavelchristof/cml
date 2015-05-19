@@ -1,10 +1,6 @@
 package cml
 
-import cml.algebra.ad
 import cml.algebra.traits._
-
-import scala.util.Random
-import scalaz.Functor
 
 trait Optimizer[In[_], Out[_]] {
   val model: Model[In, Out]

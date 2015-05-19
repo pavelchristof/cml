@@ -1,6 +1,7 @@
 package cml.algebra
 
 import cml.Enumerate
+import cml.algebra.Compose._
 import cml.algebra.traits._
 
 import scalaz._
@@ -8,26 +9,19 @@ import scalaz._
 case class Compose[F[_], G[_]] () {
   type Type[A] = F[G[A]]
 
-  implicit def functor
-    (implicit f: Functor[F], g: Functor[G]): Functor[Compose[F, G]#Type] =
+  implicit def functor(implicit f: Functor[F], g: Functor[G]): ComposeFunctor[F, G] =
     new Compose.ComposeFunctor[F, G]()
-  implicit def applicative
-    (implicit f: Applicative[F], g: Applicative[G]): Applicative[Compose[F, G]#Type] =
+  implicit def applicative(implicit f: Applicative[F], g: Applicative[G]): ComposeApplicative[F, G] =
     new Compose.ComposeApplicative[F, G]()
-  implicit def additive1
-    (implicit f: Concrete[F], g: Additive1[G]): Additive1[Compose[F, G]#Type] =
+  implicit def additive1(implicit f: Concrete[F], g: Additive1[G]): ComposeAdditive1[F, G] =
     new Compose.ComposeAdditive1[F, G]()
-  implicit def linear
-    (implicit f: Concrete[F], g: Linear[G]): Linear[Compose[F, G]#Type] =
+  implicit def linear(implicit f: Concrete[F], g: Linear[G]): ComposeLinear[F, G] =
     new Compose.ComposeLinear[F, G]()
-  implicit def normed
-    (implicit f: Concrete[F], g: Normed[G]): Normed[Compose[F, G]#Type] =
+  implicit def normed(implicit f: Concrete[F], g: Normed[G]): ComposeNormed[F, G] =
     new Compose.ComposeNormed
-  implicit def locallyConcrete
-    (implicit f: LocallyConcrete[F], g: LocallyConcrete[G]): LocallyConcrete[Compose[F, G]#Type] =
+  implicit def locallyConcrete(implicit f: LocallyConcrete[F], g: LocallyConcrete[G]): ComposeLocallyConcrete[F, G] =
     new Compose.ComposeLocallyConcrete
-  implicit def concrete
-    (implicit f: Concrete[F], g: Concrete[G]): Concrete[Compose[F, G]#Type] =
+  implicit def concrete(implicit f: Concrete[F], g: Concrete[G]): ComposeConcrete[F, G] =
     new Compose.ComposeConcrete
 }
 
