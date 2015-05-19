@@ -16,5 +16,8 @@ trait ToAdditiveOps {
 
 trait AdditiveSyntax[F] {
   implicit def ToAdditiveOps(v: F): AdditiveOps[F] = new AdditiveOps[F](v)(AdditiveSyntax.this.F)
+
+  def _0: F = F.zero
+
   def F: Additive[F]
 }

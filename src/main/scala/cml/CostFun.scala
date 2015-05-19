@@ -8,7 +8,7 @@ abstract class CostFun[In[_], Out[_]] {
 
   def mean[A](data: Seq[ScoredSample[In[A], Out[A]]])(implicit an: Analytic[A]): A = {
     import an.analyticSyntax._
-    data.map(scoreSample(_)).fold[A](an.zero)(_ + _) / data.size
+    data.map(scoreSample(_)).fold[A](_0)(_ + _) / fromInt(data.size)
   }
 
   def apply[V[_], A](

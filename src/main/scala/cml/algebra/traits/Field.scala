@@ -14,13 +14,13 @@ trait Field[T] extends Ring[T] {
     n match {
       case 0 => zero
       case 1 => one
-      case _ if n < 0 => -fromInt(-n)
+      case _ if n < 0 => -this.fromInt(-n)
       case _ if n % 2 == 0 => {
-        val half = fromInt(n/2)
+        val half = this.fromInt(n/2)
         half + half
       }
       case _ => {
-        val nearlyHalf = fromInt(n/2)
+        val nearlyHalf = this.fromInt(n/2)
         nearlyHalf + nearlyHalf + one
       }
     }

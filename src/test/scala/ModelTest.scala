@@ -34,7 +34,7 @@ object ModelTest extends App {
 
     override def regularization[V[_], A](inst: V[A])(implicit an: Analytic[A], space: LocallyConcrete[V]): A = {
       import an.analyticSyntax._
-      space.quadrance(inst) / 3000
+      space.quadrance(inst) / fromInt(3000)
     }
   }
 

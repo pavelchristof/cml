@@ -14,5 +14,8 @@ trait ToRingOps extends ToAdditiveOps {
 
 trait RingSyntax[F] extends AdditiveSyntax[F] {
   implicit def ToRingOps(v: F): RingOps[F] = new RingOps[F](v)(RingSyntax.this.F)
+
+  def _1: F = F.one
+
   def F: Ring[F]
 }

@@ -2,6 +2,7 @@ package cml
 
 import cml.algebra.traits._
 
+import scala.reflect.ClassTag
 import scala.util.Random
 import scalaz.Functor
 

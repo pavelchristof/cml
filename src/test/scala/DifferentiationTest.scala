@@ -22,18 +22,18 @@ object DifferentiationTest extends Properties("Differentiation") {
       }
       override def deriv[A](x: A)(implicit an: Analytic[A]): A = {
         import an.analyticSyntax._
-        0
+        _0
       }
     },
     new Fun {
       override def description = "polynomial"
       override def value[A](x: A)(implicit an: Analytic[A]): A = {
         import an.analyticSyntax._
-        x + x * x - x * 3 + x * x * x * x * 2
+        x + x * x - fromInt(3) * x + fromInt(2) * x * x * x * x
       }
       override def deriv[A](x: A)(implicit an: Analytic[A]): A = {
         import an.analyticSyntax._
-        an.one + x * 2 - 3 + x * x * x * 8
+        _1 + fromInt(2) * x - fromInt(3) + fromInt(8) * x * x * x
       }
     },
     new Fun {
@@ -44,7 +44,7 @@ object DifferentiationTest extends Properties("Differentiation") {
       }
       override def deriv[A](x: A)(implicit an: Analytic[A]): A = {
         import an.analyticSyntax._
-        (x * x * x * 2) / (x * x * x * x).sqrt
+        (fromInt(2) * x * x * x) / (x * x * x * x).sqrt
       }
     },
     new Fun {
@@ -66,40 +66,40 @@ object DifferentiationTest extends Properties("Differentiation") {
       }
       override def deriv[A](x: A)(implicit an: Analytic[A]): A = {
         import an.analyticSyntax._
-        1
+        _1
       }
     },
     new Fun {
       override def description = "double sine"
       override def value[A](x: A)(implicit an: Analytic[A]): A = {
         import an.analyticSyntax._
-        (x * 2).sin - x.sin * x.cos * 2
+        (x * fromInt(2)).sin - x.sin * x.cos * fromInt(2)
       }
       override def deriv[A](x: A)(implicit an: Analytic[A]): A = {
         import an.analyticSyntax._
-        0
+        _0
       }
     },
     new Fun {
       override def description = "double cosine"
       override def value[A](x: A)(implicit an: Analytic[A]): A = {
         import an.analyticSyntax._
-        (x * 2).cos - x.cos.square + x.sin.square
+        (x * fromInt(2)).cos - x.cos.square + x.sin.square
       }
       override def deriv[A](x: A)(implicit an: Analytic[A]): A = {
         import an.analyticSyntax._
-        0
+        _0
       }
     },
     new Fun {
       override def description = "double tangent"
       override def value[A](x: A)(implicit an: Analytic[A]): A = {
         import an.analyticSyntax._
-        (x * 2).tan - (x.tan * 2) / (an.one - x.tan.square)
+        (fromInt(2) * x).tan - (fromInt(2) * x.tan) / (_1 - x.tan.square)
       }
       override def deriv[A](x: A)(implicit an: Analytic[A]): A = {
         import an.analyticSyntax._
-        0
+        _0
       }
     },
     new Fun {
@@ -110,7 +110,7 @@ object DifferentiationTest extends Properties("Differentiation") {
       }
       override def deriv[A](x: A)(implicit an: Analytic[A]): A = {
         import an.analyticSyntax._
-        0
+        _0
       }
     },
     new Fun {
@@ -121,7 +121,7 @@ object DifferentiationTest extends Properties("Differentiation") {
       }
       override def deriv[A](x: A)(implicit an: Analytic[A]): A = {
         import an.analyticSyntax._
-        1
+        _1
       }
     },
     new Fun {
@@ -132,7 +132,7 @@ object DifferentiationTest extends Properties("Differentiation") {
       }
       override def deriv[A](x: A)(implicit an: Analytic[A]): A = {
         import an.analyticSyntax._
-        1
+        _1
       }
     },
     new Fun {
@@ -143,7 +143,7 @@ object DifferentiationTest extends Properties("Differentiation") {
       }
       override def deriv[A](x: A)(implicit an: Analytic[A]): A = {
         import an.analyticSyntax._
-        1
+        _1
       }
     },
     new Fun {
@@ -154,7 +154,7 @@ object DifferentiationTest extends Properties("Differentiation") {
       }
       override def deriv[A](x: A)(implicit an: Analytic[A]): A = {
         import an.analyticSyntax._
-        0
+        _0
       }
     },
     new Fun {
@@ -165,13 +165,13 @@ object DifferentiationTest extends Properties("Differentiation") {
       }
       override def deriv[A](x: A)(implicit an: Analytic[A]): A = {
         import an.analyticSyntax._
-        0
+        _0
       }
     }
   )
 
   def closeEnough(x: Double, y: Double): Boolean = {
-    val eps = 0.001
+    val eps = 0.005
     x == y || (x - y).abs <= eps * (x.abs.max(y.abs).max(eps))
   }
 
