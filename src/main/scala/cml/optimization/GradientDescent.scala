@@ -36,7 +36,8 @@ case class GradientDescent[In[_], Out[_]] (
       .applyOrElse(0, (_: Int) => model.symmetryBreaking(new Random())(fl))
       .asInstanceOf[model.Type[A]]
 
-    def error(inst: model.Type[Aug[A]]): Aug[A] = {
+    def error(inst: model.Type[Aug[A]], ctx: Context[A]): Aug[A] = {
+      implicit val an = analytic(fl, ctx)
       val scored = model.score(inst)(data.map(x => (
         inFunctor.map(x._1)(constant(_)),
         outFunctor.map(x._2)(constant(_)))
@@ -44,7 +45,7 @@ case class GradientDescent[In[_], Out[_]] (
       costFun[model.Type, Aug[A]](inst, scored)
     }
 
-    val gradWithErr = gradWithValueLC[A, model.Type](error(_))(fl, space)
+    val gradWithErr = gradWithValueLC[A, model.Type](error(_, _))(fl, space)
 
     for (i <- 0 until iterations) {
       val (err, grad) = gradWithErr(inst)

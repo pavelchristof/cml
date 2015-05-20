@@ -3,7 +3,7 @@ package cml.algebra
 import cml.algebra.traits._
 
 object Real {
-  implicit object Double extends Floating[Double] {
+  implicit object DoubleInst extends Floating[Double] {
     override def add(x: Double, y: Double): Double = x + y
     override def sub(x: Double, y: Double): Double = x - y
     override def neg(x: Double): Double = -x

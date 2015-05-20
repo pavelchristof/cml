@@ -5,6 +5,7 @@ import scalaz.syntax.Ops
 
 final class FieldOps[F] private[syntax](val self: F)(implicit f: Field[F]) extends Ops[F] {
   def /(x: F): F = f.div(self, x)
+  def inv: F = f.inv(self)
 }
 
 trait ToFieldOps extends ToRingOps {

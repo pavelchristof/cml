@@ -11,7 +11,7 @@ object DifferentiationTest extends Properties("Differentiation") {
     def deriv[A](x: A)(implicit an: Analytic[A]): A
   }
 
-  val engines = Seq(("Forward", ad.Forward))
+  val engines = Seq(("Forward", ad.Forward), ("Backward", ad.Backward))
 
   val funs = Seq(
     new Fun {
@@ -171,17 +171,22 @@ object DifferentiationTest extends Properties("Differentiation") {
   )
 
   def closeEnough(x: Double, y: Double): Boolean = {
-    val eps = 0.005
+    val eps = 0.01
     x == y || (x - y).abs <= eps * (x.abs.max(y.abs).max(eps))
   }
 
   for ((name, engine) <- engines) {
     import engine._
     for (fun <- funs) {
-      val computedDeriv = diff[Double](fun.value(_))
+      def prepFun(x: Aug[Double], ctx: Context[Double]): Aug[Double] =
+        fun.value(x)(analytic(implicitly, ctx))
+      val computedDeriv = diffWithValue[Double](prepFun)
       property(s"$name.${fun.description}") = forAll { (x: Double) => {
-        val expected = fun.deriv(x)
-        val actual = computedDeriv(x)
+        val eVal = fun.value(x)
+        val eDiff = fun.deriv(x)
+        val (aVal, aDiff) = computedDeriv(x)
+        val actual = aDiff
+        val expected = eDiff
         expected.isNaN || actual.isNaN || closeEnough(expected, actual) || {
           println(s"Expected: $expected, actual $actual")
           false

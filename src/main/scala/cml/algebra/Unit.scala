@@ -6,7 +6,7 @@ object Unit {
   /**
    * This isn't really a field because zero == one, but it is useful.
    */
-  implicit object Analytic extends Analytic[Unit] {
+  implicit object UnitInst extends Analytic[Unit] {
     override val zero: Unit = ()
 
     override val one: Unit = ()

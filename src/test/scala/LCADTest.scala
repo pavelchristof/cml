@@ -16,13 +16,15 @@ object LCADTest extends App {
 
   println(concrete.point(()).keySet)
 
-  def err[A](v: Map[BigInt, A])(implicit an: Analytic[A]): A = {
+  import ad.Forward._
+
+  def err(v: Map[BigInt, Aug[Double]], ctx: Context[Double]): Aug[Double] = {
+    val an: Analytic[Aug[Double]] = analytic(implicitly, ctx)
     import an.analyticSyntax._
     space.indexLC(v)(42).square - fromInt(100) + space.indexLC(v)(13) * fromInt(12)
   }
 
-  import ad.Forward._
-  val g = gradLC[Double, ({type T[A] = Map[BigInt, A]})#T](err[Aug[Double]])
+  val g = gradLC[Double, ({type T[A] = Map[BigInt, A]})#T](err)
   println(g(Map().withDefault(_ => 0.0)))
   println(g(Map(BigInt(42) -> 100.0).withDefault(_ => 0.0)))
   println(g(Map(BigInt(42) -> 50.0).withDefault(_ => 0.0)))
