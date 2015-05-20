@@ -15,7 +15,7 @@ case class SelectBest[In[_], Out[_]] (
     data: Seq[(In[A], Out[A])],
     costFun: CostFun[In, Out]
   )(implicit
-    an: Analytic[A],
+    fl: Floating[A],
     cmp: Ordering[A],
     diffEngine: cml.ad.Engine
   ): Vector[model.Type[A]] =
@@ -23,7 +23,7 @@ case class SelectBest[In[_], Out[_]] (
       Vector.empty
     } else {
       Vector(population.minBy((inst: model.Type[A]) =>
-        costFun[model.Type, A](inst, model.score(inst)(data))(an, model.space)
+        costFun[model.Type, A](inst, model.score(inst)(data))(fl, model.space)
       ))
     }
 }

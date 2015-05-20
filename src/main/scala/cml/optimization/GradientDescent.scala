@@ -23,7 +23,7 @@ case class GradientDescent[In[_], Out[_]] (
     data: Seq[(In[A], Out[A])],
     costFun: CostFun[In, Out]
   )(implicit
-    an: Analytic[A],
+    fl: Floating[A],
     cmp: Ordering[A],
     diffEngine: cml.ad.Engine
   ): Vector[model.Type[A]] = {
@@ -33,7 +33,7 @@ case class GradientDescent[In[_], Out[_]] (
     // Select or create a model instance.
     val selector = SelectBest(model)
     var inst: model.Type[A] = selector(population.asInstanceOf[Vector[selector.model.Type[A]]], data, costFun)
-      .applyOrElse(0, (_: Int) => model.symmetryBreaking(new Random())(an))
+      .applyOrElse(0, (_: Int) => model.symmetryBreaking(new Random())(fl))
       .asInstanceOf[model.Type[A]]
 
     def error(inst: model.Type[Aug[A]]): Aug[A] = {
@@ -44,12 +44,12 @@ case class GradientDescent[In[_], Out[_]] (
       costFun[model.Type, Aug[A]](inst, scored)
     }
 
-    val gradWithErr = gradWithValueLC[A, model.Type](error(_))(an, space)
+    val gradWithErr = gradWithValueLC[A, model.Type](error(_))(fl, space)
 
     for (i <- 0 until iterations) {
       val (err, grad) = gradWithErr(inst)
       println(s"Iteration $i: $err")
-      inst = space.sub(inst, space.mull(an.fromDouble(step), grad))
+      inst = space.sub(inst, space.mull(fl.fromDouble(step), grad))
     }
 
     Vector(inst)

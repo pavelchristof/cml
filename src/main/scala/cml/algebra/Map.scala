@@ -81,10 +81,10 @@ object Map {
      * function f uses accumulating functions such as sum(), length(), etc. Otherwise the subspace X is constant for
      * all v in V.
      */
-    override def restrict[A](h: Covector[({type T[A] = Map[K, A]})#T])(v: Map[K, A])
-      (implicit an: Analytic[A]): Concrete[({type T[A] = Map[K, A]})#T] = {
+    override def restrict[A](h: Map[K, A] => A)(v: Map[K, A])
+        (implicit a: Additive[A]): Concrete[({type T[A] = Map[K, A]})#T] = {
       val context = Context[K](false, collection.mutable.Set())
-      h[A](SpyMap(context, collection.immutable.Map()))
+      h(SpyMap(context, collection.immutable.Map()))
       var keys = context.accessed
       if (context.iterated)
         keys ++= v.keySet
@@ -105,13 +105,11 @@ object Map {
     override def -(key: K): Map[K, A] = SpyMap(context, content - key)
 
     override def get(key: K): Option[A] = {
-      println(key)
       context.accessed += key
       content.get(key)
     }
 
     override def iterator: Iterator[(K, A)] = {
-      println("Iterated!")
       context.iterated = true
       content.iterator
     }

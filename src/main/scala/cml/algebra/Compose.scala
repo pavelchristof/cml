@@ -145,20 +145,13 @@ object Compose {
      * function f uses accumulating functions such as sum(), length(), etc. Otherwise the subspace X is constant for
      * all v in V.
      */
-    override def restrict[A](h: Covector[({type T[A] = F[G[A]]})#T])(v: F[G[A]])
-      (implicit an: Analytic[A]): Concrete[({type T[A] = F[G[A]]})#T] = {
-      val fv: F[A] = f.mapLC(v)(g.sum(_))(g.additive, an)
+    override def restrict[A](h: (F[G[A]]) => A)(v: F[G[A]])
+        (implicit a: Additive[A]): Concrete[({type T[A] = F[G[A]]})#T] = {
+      val fv: F[A] = f.mapLC(v)(g.sum(_))(g.additive, a)
       val gv: G[A] = f.sum(v)(g.additive)
 
-      val x = f.restrict(new Covector[F] {
-        override def apply[A](v: F[A])(implicit field: Analytic[A]): A =
-          h(f.mapLC[A, G[A]](v)(_ => g.zero)(field, g.additive(field)))(field)
-      })(fv)
-
-      val y = g.restrict(new Covector[G] {
-        override def apply[A](v: G[A])(implicit field: Analytic[A]): A =
-          h(x.point(v))
-      })(gv)
+      val x = f.restrict((u: F[A]) => h(f.mapLC[A, G[A]](u)(_ => g.zero)(a, g.additive)))(fv)
+      val y = g.restrict((u: G[A]) => h(x.point(u)))(gv)
 
       Compose[F, G].concrete(x, y)
     }

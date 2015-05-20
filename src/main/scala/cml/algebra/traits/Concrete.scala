@@ -94,7 +94,7 @@ trait Concrete[V[_]] extends LocallyConcrete[V] with Applicative[V] with Foldabl
    * function f uses accumulating functions such as sum(), length(), etc. Otherwise the subspace X is constant for
    * all v in V.
    */
-  override def restrict[A](h: Covector[V])(v: V[A])(implicit an: Analytic[A]): Concrete[V] = this
+  override def restrict[A](h: V[A] => A)(v: V[A])(implicit a: Additive[A]): Concrete[V] = this
 
   override def map[A, B](v: V[A])(f: (A) => B): V[B] = {
     val coeff = index(v)_

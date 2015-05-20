@@ -82,8 +82,11 @@ object Forward extends Engine {
       (x._1.tanh, (x._2 * q * q * f.fromInt(4)) / (p * p))
     }
 
+    override def fromFloat(x: Float): (F, F) =
+      (f.fromFloat(x), _0)
+
     override def fromDouble(x: Double): (F, F) =
-      (f.fromDouble(x), f.zero)
+      (f.fromDouble(x), _0)
   }
 
   /**

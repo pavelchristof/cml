@@ -1,9 +1,9 @@
 package cml.algebra
 
-import cml.algebra.traits.Analytic
+import cml.algebra.traits._
 
 object Real {
-  implicit object DoubleField extends Analytic[Double] {
+  implicit object Double extends Floating[Double] {
     override def add(x: Double, y: Double): Double = x + y
     override def sub(x: Double, y: Double): Double = x - y
     override def neg(x: Double): Double = -x
@@ -30,6 +30,12 @@ object Real {
     override def sinh(x: Double): Double = math.sinh(x)
     override def cosh(x: Double): Double = math.cosh(x)
     override def tanh(x: Double): Double = math.tanh(x)
+
+    override def fromFloat(x: Float): Double = x
     override def fromDouble(x: Double): Double = x
+
+    override def isNaN(x: Double): Boolean = x.isNaN
+    override def toDouble(x: Double): Double = x
+    override def toFloat(x: Double): Float = x.toFloat
   }
 }

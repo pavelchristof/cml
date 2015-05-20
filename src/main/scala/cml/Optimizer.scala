@@ -9,7 +9,7 @@ trait Optimizer[In[_], Out[_]] {
     data: Seq[(In[A], Out[A])],
     costFun: CostFun[In, Out]
   )(implicit
-    an: Analytic[A],
+    fl: Floating[A],
     cmp: Ordering[A],
     diffEngine: ad.Engine
   ): Vector[model.Type[A]]

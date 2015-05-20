@@ -46,12 +46,12 @@ trait Engine {
   /**
    * Computes the gradient of a function taking a vector as the argument.
    */
-  def gradLC[F, V[_]](f: (V[Aug[F]]) => Aug[F])(implicit field: Field[F], space: LocallyConcrete[V]): (V[F]) => V[F] =
-    x => grad(f)(field, space.restrict(x))(x)
+  def gradLC[F, V[_]](f: (V[Aug[F]]) => Aug[F])(implicit an: Analytic[F], space: LocallyConcrete[V]): (V[F]) => V[F] =
+    x => grad[F, V](f)(an, space.restrict(f)(space.mapLC(x)(constant(_))))(x)
 
   /**
    * Computes the value and gradient of a function taking a vector as the argument.
    */
-  def gradWithValueLC[F, V[_]](f: (V[Aug[F]]) => Aug[F])(implicit field: Field[F], space: LocallyConcrete[V]): (V[F]) => (F, V[F]) =
-    x => gradWithValue(f)(field, space.restrict(x))(x)
+  def gradWithValueLC[F, V[_]](f: V[Aug[F]] => Aug[F])(implicit an: Analytic[F], space: LocallyConcrete[V]): (V[F]) => (F, V[F]) =
+    x => gradWithValue[F, V](f)(an, space.restrict(f)(space.mapLC(x)(constant(_))))(x)
 }
