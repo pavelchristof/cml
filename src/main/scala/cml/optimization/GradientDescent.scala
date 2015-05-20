@@ -48,8 +48,9 @@ case class GradientDescent[In[_], Out[_]] (
 
     for (i <- 0 until iterations) {
       val (err, grad) = gradWithErr(inst)
+      val gradStable = model.space.mapLC(grad)(x => if (fl.isNaN(x)) fl.zero else x)
       println(s"Iteration $i: $err")
-      inst = space.sub(inst, space.mull(fl.fromDouble(step), grad))
+      inst = space.sub(inst, space.mull(fl.fromDouble(step), gradStable))
     }
 
     Vector(inst)
