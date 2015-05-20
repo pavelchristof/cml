@@ -246,11 +246,17 @@ object Backward extends Engine {
    * Computes the gradient of a function taking a vector as the argument.
    */
   override def gradLC[F, V[_]](f: (V[Aug[F]], Context[F]) => Aug[F])
-      (implicit an: Analytic[F], space: LocallyConcrete[V]): (V[F]) => V[F] = ???
+      (implicit an: Analytic[F], space: LocallyConcrete[V]): (V[F]) => V[F] = v => {
+    implicit val additive: Additive[Aug[F]] = field(an, null)
+    grad[F, V](f)(an, space.restrict((x: V[Aug[F]]) => f(x, null))(space.mapLC(v)(constant(_))))(v)
+  }
 
   /**
    * Computes the value and gradient of a function taking a vector as the argument.
    */
   override def gradWithValueLC[F, V[_]](f: (V[Aug[F]], Context[F]) => Aug[F])
-      (implicit an: Analytic[F], space: LocallyConcrete[V]): (V[F]) => (F, V[F]) = ???
+      (implicit an: Analytic[F], space: LocallyConcrete[V]): (V[F]) => (F, V[F]) = v => {
+    implicit val additive: Additive[Aug[F]] = field(an, null)
+    gradWithValue[F, V](f)(an, space.restrict((x: V[Aug[F]]) => f(x, null))(space.mapLC(v)(constant(_))))(v)
+  }
 }

@@ -171,7 +171,7 @@ object DifferentiationTest extends Properties("Differentiation") {
   )
 
   def closeEnough(x: Double, y: Double): Boolean = {
-    val eps = 0.01
+    val eps = 0.02
     x == y || (x - y).abs <= eps * (x.abs.max(y.abs).max(eps))
   }
 
