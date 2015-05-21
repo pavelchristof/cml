@@ -18,12 +18,15 @@ case class SelectBest[In[_], Out[_]] (
     fl: Floating[A],
     cmp: Ordering[A],
     diffEngine: cml.ad.Engine
-  ): Vector[model.Type[A]] =
-    if (population.isEmpty) {
-      Vector.empty
+  ): Vector[model.Type[A]] = {
+    val p = population
+      .map((inst: model.Type[A]) =>
+        (inst, costFun[model.Type, A](inst, model.score(inst)(data))(fl, model.space)))
+      .filter(x => !fl.isNaN(x._2))
+    if (p.isEmpty) {
+      Vector()
     } else {
-      Vector(population.minBy((inst: model.Type[A]) =>
-        costFun[model.Type, A](inst, model.score(inst)(data))(fl, model.space)
-      ))
+      Vector(p.minBy(_._2)._1)
     }
+  }
 }

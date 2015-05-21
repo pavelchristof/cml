@@ -78,23 +78,20 @@ trait Concrete[V[_]] extends LocallyConcrete[V] with Applicative[V] with Foldabl
     ap(x)(f)
 
   /**
-   * Returns the concrete subspace containing v.
+   * Applies a binary function pointwise. If must hold that f(0, 0) = 0.
    */
-  final override def restrict[A](v: V[A])(implicit field: Field[A]): Concrete[V] = this
+  final override def apply2LC[A, B, C](x: V[A], y: V[B])(f: (A, B) => C)
+      (implicit a: Additive[A], b: Additive[B], c: Additive[C]): V[C] =
+    apply2(x, y)(f)
 
   /**
-   * The fundamental property of locally concrete vector spaces is that for any function f on vectors polymorphic in
-   * the number type and for each vector v in V, we can factor V as X x Y where X is concrete and f(v) = f(v + y) for
-   * all y in Y. This function finds such a subspace X, not necessarily the smallest.
-   *
-   * It follows that the derivative df(x)/dy = 0 for any y in Y. As such it is enough to consider partial derivatives
-   * on X to find the gradient of f.
-   *
-   * The subspace X does not always depend on the vector v. It only depends on v (and contains restrict(v)) when the
-   * function f uses accumulating functions such as sum(), length(), etc. Otherwise the subspace X is constant for
-   * all v in V.
+   * Returns the concrete subspace containing v.
    */
-  final override def restrict[A](h: V[A] => A)(v: V[A])(implicit a: Additive[A]): Concrete[V] = this
+  final override def restrict[A](v: V[A])(implicit field: Field[A]): Subspace[V] =
+    Subspace.refl[V](this)
+
+  final override def restrict[A](h: V[A] => A)(v: V[A])(implicit a: Additive[A]): Subspace[V] =
+    Subspace.refl[V](this)
 
   override def map[A, B](v: V[A])(f: (A) => B): V[B] = {
     val coeff = index(v)_

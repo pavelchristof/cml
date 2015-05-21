@@ -2,7 +2,10 @@ package cml.algebra.traits
 
 import cml.Enumerate
 
+import scala.reflect.ClassTag
 import scalaz.Functor
+
+
 
 /**
  * Potentially infinitely dimensional vector space with a countable (normal) basis and the property that for each
@@ -28,7 +31,7 @@ trait LocallyConcrete[V[_]] extends Normed[V] {
   /**
    * The (finite) dimension of a vector, equal to the dimension of the restriction to v.
    */
-  def dim[A](v: V[A])(implicit field: Field[A]): BigInt = restrict(v).dimFin
+  def dim[A](v: V[A])(implicit field: Field[A]): BigInt = restrict(v).concrete.dimFin
 
   /**
    * The (normal) basis for this vector space.
@@ -56,9 +59,14 @@ trait LocallyConcrete[V[_]] extends Normed[V] {
   def apLC[A, B](x: V[A])(f: V[A => B])(implicit a: Additive[A], b: Additive[B]): V[B]
 
   /**
+   * Applies a binary function pointwise. If must hold that f(0, 0) = 0.
+   */
+  def apply2LC[A, B, C](x: V[A], y: V[B])(f: (A, B) => C)(implicit a: Additive[A], b: Additive[B], c: Additive[C]): V[C]
+
+  /**
    * Returns a concrete subspace containing v.
    */
-  def restrict[A](v: V[A])(implicit field: Field[A]): Concrete[V]
+  def restrict[A](v: V[A])(implicit field: Field[A]): Subspace[V]
 
   /**
    * The subspace X does not always depend on the vector v. It only depends on v (and contains restrict(v)) when the
@@ -67,5 +75,5 @@ trait LocallyConcrete[V[_]] extends Normed[V] {
    *
    * TODO: figure out what does it really do.
    */
-  def restrict[A](h: (V[A]) => A)(v: V[A])(implicit a: Additive[A]): Concrete[V]
+  def restrict[A](h: (V[A]) => A)(v: V[A])(implicit a: Additive[A]): Subspace[V]
 }

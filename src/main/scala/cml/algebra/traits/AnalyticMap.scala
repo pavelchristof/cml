@@ -64,7 +64,7 @@ object AnalyticMap {
   val sigmoid = new AnalyticMap {
     override def apply[F](x: F)(implicit f: Analytic[F]): F = {
       import f.analyticSyntax._
-      f.one / (f.one + (-x).exp)
+      _1 / (_1 + (-x).exp)
     }
   }
 }

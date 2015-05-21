@@ -171,8 +171,8 @@ object Backward extends Engine {
         case Unary(j, d) => arr(j) = arr(j) + d * arr(i)
         case Binary(j1, j2, d1, d2) => {
           val d = arr(i)
-          arr(j1) = arr(j1) + d1 * d
-          arr(j2) = arr(j2) + d2 * d
+          arr(j1) += d1 * d
+          arr(j2) += d2 * d
         }
       }
     }
@@ -203,8 +203,8 @@ object Backward extends Engine {
 
   private def makeInput[F, V[_]](v: V[F])(implicit space: Concrete[V]): V[Aug[F]] = {
     var i = 0
-    space.map(v)(x => {
-      val r = Aug(Some(i), x)
+    space.tabulate(index => {
+      val r = Aug(Some(i), space.index(v)(index))
       i += 1
       r
     })
@@ -248,7 +248,12 @@ object Backward extends Engine {
   override def gradLC[F, V[_]](f: (V[Aug[F]], Context[F]) => Aug[F])
       (implicit an: Analytic[F], space: LocallyConcrete[V]): (V[F]) => V[F] = v => {
     implicit val additive: Additive[Aug[F]] = field(an, null)
-    grad[F, V](f)(an, space.restrict((x: V[Aug[F]]) => f(x, null))(space.mapLC(v)(constant(_))))(v)
+    val subspace = space.restrict[Aug[F]]((x: V[Aug[F]]) => f(x, null))(space.mapLC(v)(constant(_)))
+    import subspace.concrete
+    def fr(u: subspace.Type[Aug[F]], ctx: Context[F]): Aug[F] =
+      f(subspace.inject(u)(analytic(an, ctx)), ctx)
+    val gradr = grad[F, subspace.Type](fr)
+    subspace.inject(gradr(subspace.project(v)))
   }
 
   /**
@@ -257,6 +262,12 @@ object Backward extends Engine {
   override def gradWithValueLC[F, V[_]](f: (V[Aug[F]], Context[F]) => Aug[F])
       (implicit an: Analytic[F], space: LocallyConcrete[V]): (V[F]) => (F, V[F]) = v => {
     implicit val additive: Additive[Aug[F]] = field(an, null)
-    gradWithValue[F, V](f)(an, space.restrict((x: V[Aug[F]]) => f(x, null))(space.mapLC(v)(constant(_))))(v)
+    val subspace = space.restrict[Aug[F]]((x: V[Aug[F]]) => f(x, null))(space.mapLC(v)(constant(_)))
+    import subspace.concrete
+    def fr(u: subspace.Type[Aug[F]], ctx: Context[F]): Aug[F] =
+      f(subspace.inject(u)(analytic(an, ctx)), ctx)
+    val gradr = gradWithValue[F, subspace.Type](fr)
+    val r = gradr(subspace.project(v))
+    (r._1, subspace.inject(r._2))
   }
 }

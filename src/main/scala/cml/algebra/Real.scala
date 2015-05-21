@@ -37,5 +37,6 @@ object Real {
     override def isNaN(x: Double): Boolean = x.isNaN
     override def toDouble(x: Double): Double = x
     override def toFloat(x: Double): Float = x.toFloat
+    override val infinity: Double = Double.PositiveInfinity
   }
 }

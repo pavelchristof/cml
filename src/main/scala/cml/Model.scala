@@ -44,7 +44,7 @@ trait Model[In[_], Out[_]] {
    * Initializes the model with small, random real numbers to break symmetry.
    */
   def symmetryBreaking[A](random: Random)(implicit a: Analytic[A]): Type[A] =
-    fill(a.fromDouble((random.nextDouble() - 0.5) * 0.02))
+    fill(a.fromDouble((random.nextDouble() * 2) - 1))
 
   /**
    * Scores the data set.
@@ -56,3 +56,4 @@ trait Model[In[_], Out[_]] {
       actual = apply(inst)(in)
     )}
 }
+

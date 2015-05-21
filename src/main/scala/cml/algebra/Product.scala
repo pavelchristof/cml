@@ -66,12 +66,9 @@ object Product {
       a.add(f.dot(u._1, v._1), g.dot(u._2, v._2))
   }
 
-  class ProductLocallyConcrete[F[_], G[_]](implicit f_ : LocallyConcrete[F], g_ : LocallyConcrete[G])
+  class ProductLocallyConcrete[F[_], G[_]](implicit val f : LocallyConcrete[F], val g : LocallyConcrete[G])
     extends ProductNormed[F, G]
     with LocallyConcrete[({type T[A] = (F[A], G[A])})#T] {
-    val f = f_
-    val g = g_
-
     /**
      * A countable or finite set indexing the basis.
      */
@@ -128,37 +125,45 @@ object Product {
       (f.apLC(x._1)(h._1), g.apLC(x._2)(h._2))
 
     /**
-     * Returns the concrete subspace containing v.
+     * Applies a binary function pointwise. If must hold that f(0, 0) = 0.
      */
-    override def restrict[A](v: (F[A], G[A]))(implicit field: Field[A]): Concrete[({type T[A] = (F[A], G[A])})#T] =
-      Product.concrete(f.restrict(v._1), g.restrict(v._2))
+    override def apply2LC[A, B, C](x: (F[A], G[A]), y: (F[B], G[B]))(h: (A, B) => C)
+        (implicit a: Additive[A], b: Additive[B], c: Additive[C]): (F[C], G[C]) =
+      (f.apply2LC(x._1, y._1)(h), g.apply2LC(x._2, y._2)(h))
 
     /**
-     * The fundamental property of locally concrete vector spaces is that for any function f on vectors polymorphic in
-     * the number type and for each vector v in V, we can factor V as X x Y where X is concrete and f(v) = f(v + y) for
-     * all y in Y. This function finds such a subspace X, not necessarily the smallest.
-     *
-     * It follows that the derivative df(x)/dy = 0 for any y in Y. As such it is enough to consider partial derivatives
-     * on X to find the gradient of f.
-     *
-     * The subspace X does not always depend on the vector v. It only depends on v (and contains restrict(v)) when the
-     * function f uses accumulating functions such as sum(), length(), etc. Otherwise the subspace X is constant for
-     * all v in V.
+     * Returns the concrete subspace containing v.
      */
+    override def restrict[A](v: (F[A], G[A]))(implicit field: Field[A]): Subspace[({type T[A] = (F[A], G[A])})#T] =
+      ProductSubspace(f.restrict(v._1), g.restrict(v._2))
+
     override def restrict[A](h: ((F[A], G[A])) => A)(v: (F[A], G[A]))
-        (implicit a: Additive[A]): Concrete[({type T[A] = (F[A], G[A])})#T] = {
+        (implicit a: Additive[A]): Subspace[({type T[A] = (F[A], G[A])})#T] = {
       val x = f.restrict((u: F[A]) => h((u, g.zero)))(v._1)
       val y = g.restrict((u: G[A]) => h((f.zero, u)))(v._2)
-      concrete[F, G](x, y)
+
+      ProductSubspace(x, y)
     }
   }
 
-  class ProductConcrete[F[_], G[_]](implicit f_ : Concrete[F], g_ : Concrete[G])
+  case class ProductSubspace[F[_], G[_]](
+    x : Subspace[F], y : Subspace[G]
+  )(implicit f : LocallyConcrete[F], g : LocallyConcrete[G])
+    extends Subspace[({type T[A] = (F[A], G[A])})#T] {
+    override type Type[A] = (x.Type[A], y.Type[A])
+
+    override def inject[A](u: Type[A])(implicit a: Additive[A]): (F[A], G[A]) =
+      (x.inject(u._1), y.inject(u._2))
+    override def project[A](v: (F[A], G[A]))(implicit a: Additive[A]): Type[A] =
+      (x.project(v._1), y.project(v._2))
+
+    override implicit val concrete: Concrete[Type] =
+      Product.concrete[x.Type, y.Type](x.concrete, y.concrete)
+  }
+
+  class ProductConcrete[F[_], G[_]](implicit override val f : Concrete[F], override val g : Concrete[G])
     extends ProductLocallyConcrete[F, G]
     with Concrete[({type T[A] = (F[A], G[A])})#T] {
-    override val f = f_
-    override val g = g_
-
     /**
      * The (finite) dimension of this vector space.
      */

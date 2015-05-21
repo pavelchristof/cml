@@ -64,32 +64,39 @@ object Map {
       x.intersectWith(f){ case (y, g) => g(y) }
 
     /**
-     * Returns the concrete subspace containing v.
+     * Applies a binary function pointwise. If must hold that f(0, 0) = 0.
      */
-    override def restrict[A](v: Map[K, A])(implicit field: Field[A]): Concrete[({type T[A] = Map[K, A]})#T] =
-      new SubMap[K](v.keySet)
+    override def apply2LC[A, B, C](x: Map[K, A], y: Map[K, B])(f: (A, B) => C)
+        (implicit a: Additive[A], b: Additive[B], c: Additive[C]): Map[K, C] =
+      x.intersectWith(y)(f)
 
     /**
-     * The fundamental property of locally concrete vector spaces is that for any function f on vectors polymorphic in
-     * the number type and for each vector v in V, we can factor V as X x Y where X is concrete and f(v) = f(v + y) for
-     * all y in Y. This function finds such a subspace X, not necessarily the smallest.
-     *
-     * It follows that the derivative df(x)/dy = 0 for any y in Y. As such it is enough to consider partial derivatives
-     * on X to find the gradient of f.
-     *
-     * The subspace X does not always depend on the vector v. It only depends on v (and contains restrict(v)) when the
-     * function f uses accumulating functions such as sum(), length(), etc. Otherwise the subspace X is constant for
-     * all v in V.
+     * Returns the concrete subspace containing v.
      */
+    override def restrict[A](v: Map[K, A])(implicit field: Field[A]): Subspace[({type T[A] = Map[K, A]})#T] =
+      MapSubspace[K](v.keySet)
+
     override def restrict[A](h: Map[K, A] => A)(v: Map[K, A])
-        (implicit a: Additive[A]): Concrete[({type T[A] = Map[K, A]})#T] = {
-      val context = Context[K](false, collection.mutable.Set())
+        (implicit a: Additive[A]): Subspace[({type T[A] = Map[K, A]})#T] = {
+      val context = Context[K](iterated = false, collection.mutable.Set())
       h(SpyMap(context, collection.immutable.Map()))
       var keys = context.accessed
       if (context.iterated)
         keys ++= v.keySet
-      new SubMap[K](keys.toSet)
+      MapSubspace[K](keys.toSet)
     }
+  }
+
+  // TODO: optimize this!
+  case class MapSubspace[K] (keys: Set[K]) extends Subspace[({type T[A] = Map[K, A]})#T] {
+    override type Type[A] = Map[K, A]
+
+    override def project[A](v: Map[K, A])(implicit a: Additive[A]): Map[K, A] =
+      keys.map(k => (k, v.applyOrElse(k, (_: K) => a.zero))).toMap
+    override def inject[A](u: Map[K, A])(implicit a: Additive[A]): Map[K, A] =
+      u
+
+    override implicit val concrete: Concrete[Type] = new SubMap[K](keys.toSet)
   }
 
   case class Context[K] (

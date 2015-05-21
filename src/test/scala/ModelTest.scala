@@ -3,33 +3,36 @@ import cml.ad
 import cml.algebra.traits._
 import cml.algebra.Real._
 import cml.models._
-import cml.optimization.GradientDescent
+import cml.optimization._
 import shapeless.Nat
 
+import scalaz.Scalaz._
 import scalaz._
 
 object ModelTest extends App {
-  implicit val diffEngine = ad.Forward
-  implicit val vecWord = algebra.Vector(Nat(10))
-  implicit val vecPair = algebra.Product[vecWord.Type, vecWord.Type]
-  implicit val vecHidden = algebra.Vector(Nat(5))
-  implicit val vecOut = algebra.Scalar
-  implicit val vecTree = algebra.Compose[Tree, vecWord.Type]
+  implicit val diffEngine = ad.Backward
+  implicit val vecIn = algebra.Scalar
+  implicit val vecHidden = algebra.Vector(Nat(1))
+  val vecOut = algebra.Scalar
+  implicit val vecTree = algebra.Compose[Tree, vecIn.Type]
 
   val model = Chain4(
-    //Reduce[Tree, vecWord.Type](
-    //  LinearMap[vecPair.Type, vecWord.Type]
-    //) : Model[vecTree.Type, vecWord.Type],
-    LinearMap[vecWord.Type, vecHidden.Type],
-    Pointwise[vecHidden.Type](AnalyticMap.sigmoid),
-    LinearMap[vecHidden.Type, vecOut.Type],
+    //Reduce[Tree, vecIn.Type](
+    //  LinearMap[vecPair.Type, vecIn.Type]
+    //) : Model[vecTree.Type, vecIn.Type],
+    AffineMap[vecIn.Type, vecHidden.Type],
+    Pointwise[vecHidden.Type](AnalyticMap.sin),
+    AffineMap[vecHidden.Type, vecOut.Type],
     Pointwise[vecOut.Type](AnalyticMap.sigmoid)
   )
 
-  val costFun = new CostFun[vecWord.Type, vecOut.Type] {
-    override def scoreSample[A](sample: ScoredSample[vecWord.Type[A], vecOut.Type[A]])(implicit an: Analytic[A]): A = {
+  val costFun = new CostFun[vecIn.Type, vecOut.Type] {
+    override def scoreSample[A](sample: ScoredSample[vecIn.Type[A], vecOut.Type[A]])(implicit an: Analytic[A]): A = {
       import an.analyticSyntax._
-      (sample.actual - sample.expected).square
+      val eps = fromDouble(0.0001)
+      val e = sample.expected
+      val a = sample.actual
+      - (e * (a + eps).log + (_1 - e) * (_1 - a + eps).log)
     }
 
     override def regularization[V[_], A](inst: V[A])(implicit an: Analytic[A], space: LocallyConcrete[V]): A = {
@@ -38,20 +41,26 @@ object ModelTest extends App {
     }
   }
 
-  val tree = Tree.node(vecWord.point(4.0), Stream(
-    Tree.leaf(vecWord.point(2.0)),
-    Tree.leaf(vecWord.point(-1.0))
-  ))
   val data = Vector(
-    (vecWord.point(1.0), 0.2)
+    (1d, 1d),
+    (2d, 0d),
+    (3d, 1d),
+    (4d, 0d)
   )
 
-  val optimizer = GradientDescent(model,
-    iterations = 4000,
-    step = 0.1
-  )(vecWord, vecOut)
+  val optimizer = new GradientDescent(
+    model,
+    iterations = 1000
+  )(vecIn, vecOut) {
+    override def newGradTrasnformer[A]()(implicit fl: Floating[A]): GradTransformer[model.Type, A] =
+      Stabilize[model.Type, A]
+        .andThen(AdaGrad[model.Type, A])
+        .andThen(Scale[model.Type, A](fl.fromDouble(1)))
+  }
 
   optimizer[Double](Vector.empty, data, costFun) match {
-    case Vector(learned) => println(model(learned.asInstanceOf[model.Type[Double]])(vecWord.point(1.0)))
+    case Vector(learned) => for (i <- Array(1d, 2d, 3d, 4d)) {
+      println(model(learned.asInstanceOf[model.Type[Double]])(i))
+    }
   }
 }
