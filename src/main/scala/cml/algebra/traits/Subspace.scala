@@ -1,8 +1,5 @@
 package cml.algebra.traits
 
-/**
- * Created by pawel on 21.05.15.
- */
 trait Subspace[V[_]] {
   type Type[A]
   def inject[A](u: Type[A])(implicit a: Additive[A]): V[A]

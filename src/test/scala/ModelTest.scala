@@ -1,7 +1,7 @@
 import cml._
 import cml.ad
 import cml.algebra.traits._
-import cml.algebra.Real._
+import cml.algebra.Instances._
 import cml.models._
 import cml.optimization._
 import shapeless.Nat

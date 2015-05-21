@@ -1,5 +1,5 @@
 import cml.algebra.traits._
-import cml.algebra.Real._
+import cml.algebra.Instances._
 import cml.algebra
 import shapeless.Nat
 

@@ -1,6 +1,6 @@
 import cml.ad
 import cml.algebra.traits._
-import cml.algebra.Real._
+import cml.algebra.Instances._
 import org.scalacheck.Properties
 import org.scalacheck.Prop._
 

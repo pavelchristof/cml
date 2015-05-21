@@ -68,7 +68,7 @@ object Compose {
     override def taxicab[A](v: F[G[A]])(implicit a: Analytic[A]): A =
       f.sum(f.mapLC(v)(g.taxicab(_))(g.additive[A], a))
     override def dot[A](u: F[G[A]], v: F[G[A]])(implicit field: Field[A]): A =
-      f.sum(f.apLC(v)(f.mapLC(u)((x: G[A]) => g.dot(x, _: G[A]))(g.additive[A], Function.additive))(g.additive[A], field))
+      f.sum(f.apLC(v)(f.mapLC(u)((x: G[A]) => g.dot(x, _: G[A]))(g.additive[A], Instances.functionAdditive))(g.additive[A], field))
   }
 
   class ComposeLocallyConcrete[F[_], G[_]](implicit f_ : LocallyConcrete[F], g_ : LocallyConcrete[G])
@@ -122,7 +122,7 @@ object Compose {
       f.apLC(x)(
         f.mapLC(h)(
           (gab: G[A => B]) => g.apLC(_: G[A])(gab)
-        )(g.additive[(A) => B](Function.additive), Function.additive[G[A], G[B]](g.additive)))(g.additive[A], g.additive[B])
+        )(g.additive[(A) => B](Instances.functionAdditive), Instances.functionAdditive[G[A], G[B]](g.additive)))(g.additive[A], g.additive[B])
 
     /**
      * Applies a binary function pointwise. If must hold that f(0, 0) = 0.

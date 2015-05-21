@@ -1,6 +1,6 @@
 import cml._
 import cml.algebra.traits._
-import cml.algebra.Real._
+import cml.algebra.Instances._
 
 object LCADTest extends App {
   implicit val space = algebra.Map.locallyConcrete[BigInt](Enumerate.natural)
