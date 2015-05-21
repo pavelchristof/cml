@@ -5,7 +5,7 @@ import cml.algebra.traits._
 case class AdaGrad[V[_], A] (
   implicit an: Analytic[A],
   space: LocallyConcrete[V]
-) extends GradTransformer[V, A] {
+) extends GradTrans[V, A] {
   var history: V[A] = space.zero
   override def apply(grad: V[A]): V[A] = {
     import an.analyticSyntax._

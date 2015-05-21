@@ -19,7 +19,7 @@ abstract case class GradientDescent[In[_], Out[_]] (
 ) extends Optimizer[In, Out] {
   implicit val space = model.space
 
-  def newGradTrasnformer[A]()(implicit fl: Floating[A]): GradTransformer[model.Type, A]
+  def newGradTrans[A]()(implicit fl: Floating[A]): GradTrans[model.Type, A]
 
   override def apply[A](
     population: Vector[model.Type[A]],
@@ -30,7 +30,6 @@ abstract case class GradientDescent[In[_], Out[_]] (
     cmp: Ordering[A],
     diffEngine: cml.ad.Engine
   ): Vector[model.Type[A]] = {
-    import fl.analyticSyntax._
     import diffEngine._
 
     // Select or create a model instance.
@@ -58,7 +57,7 @@ abstract case class GradientDescent[In[_], Out[_]] (
     def totalCost(inst: model.Type[A]): A =
       costFun[model.Type, A](inst, model.score(inst)(data))
 
-    val tr = newGradTrasnformer()
+    val tr = newGradTrans()
 
     for (i <- 0 until iterations) {
       var gradAcc = space.zero

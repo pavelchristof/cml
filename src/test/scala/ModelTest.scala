@@ -1,12 +1,10 @@
-import cml._
-import cml.ad
-import cml.algebra.traits._
+import cml.{ad, _}
 import cml.algebra.Instances._
+import cml.algebra.traits._
 import cml.models._
 import cml.optimization._
 import shapeless.Nat
 
-import scalaz.Scalaz._
 import scalaz._
 
 object ModelTest extends App {
@@ -17,9 +15,6 @@ object ModelTest extends App {
   implicit val vecTree = algebra.Compose[Tree, vecIn.Type]
 
   val model = Chain4(
-    //Reduce[Tree, vecIn.Type](
-    //  LinearMap[vecPair.Type, vecIn.Type]
-    //) : Model[vecTree.Type, vecIn.Type],
     AffineMap[vecIn.Type, vecHidden.Type],
     Pointwise[vecHidden.Type](AnalyticMap.sin),
     AffineMap[vecHidden.Type, vecOut.Type],
@@ -52,7 +47,7 @@ object ModelTest extends App {
     model,
     iterations = 1000
   )(vecIn, vecOut) {
-    override def newGradTrasnformer[A]()(implicit fl: Floating[A]): GradTransformer[model.Type, A] =
+    override def newGradTrans[A]()(implicit fl: Floating[A]): GradTrans[model.Type, A] =
       Stabilize[model.Type, A]
         .andThen(AdaGrad[model.Type, A])
         .andThen(Scale[model.Type, A](fl.fromDouble(1)))

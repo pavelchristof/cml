@@ -7,6 +7,6 @@ case class Scale[V[_], A] (
 ) (
   implicit f: Field[A],
   space: Linear[V]
-) extends GradTransformer[V, A] {
+) extends GradTrans[V, A] {
   override def apply(grad: V[A]): V[A] = space.mull(scale, grad)
 }

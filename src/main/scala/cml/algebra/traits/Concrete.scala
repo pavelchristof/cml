@@ -88,10 +88,10 @@ trait Concrete[V[_]] extends LocallyConcrete[V] with Applicative[V] with Foldabl
    * Returns the concrete subspace containing v.
    */
   final override def restrict[A](v: V[A])(implicit field: Field[A]): Subspace[V] =
-    Subspace.refl[V](this)
+    Subspace.identity[V](this)
 
   final override def restrict[A](h: V[A] => A)(v: V[A])(implicit a: Additive[A]): Subspace[V] =
-    Subspace.refl[V](this)
+    Subspace.identity[V](this)
 
   override def map[A, B](v: V[A])(f: (A) => B): V[B] = {
     val coeff = index(v)_

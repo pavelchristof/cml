@@ -8,7 +8,7 @@ trait Subspace[V[_]] {
 }
 
 object Subspace {
-  def refl[V[_]](implicit c: Concrete[V]) = new Subspace[V] {
+  def identity[V[_]](implicit c: Concrete[V]) = new Subspace[V] {
     override type Type[A] = V[A]
 
     override def inject[A](u: V[A])(implicit a: Additive[A]): V[A] = u
