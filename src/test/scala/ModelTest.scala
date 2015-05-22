@@ -23,7 +23,7 @@ object ModelTest extends App {
   )
 
   val costFun = new CostFun[vecIn.Type, vecOut.Type] {
-    override def scoreSample[A](sample: ScoredSample[vecIn.Type[A], vecOut.Type[A]])(implicit an: Analytic[A]): A = {
+    override def scoreSample[A](sample: Sample[vecIn.Type[A], vecOut.Type[A]])(implicit an: Analytic[A]): A = {
       import an.analyticSyntax._
       val eps = fromDouble(0.0001)
       val e = sample.expected

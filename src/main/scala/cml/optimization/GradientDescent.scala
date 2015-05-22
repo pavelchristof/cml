@@ -48,7 +48,7 @@ case class GradientDescent[In[_], Out[_]] (
       implicit val an = analytic(fl, ctx)
       val input = inFunctor.map(sample._1)(constant(_))
       val output = outFunctor.map(sample._2)(constant(_))
-      val scored = ScoredSample(
+      val scored = Sample(
         input = input,
         expected = output,
         actual = model(inst)(input)

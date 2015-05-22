@@ -49,8 +49,8 @@ trait Model[In[_], Out[_]] {
   /**
    * Scores the data set.
    */
-  def score[A](inst: Type[A])(data: Seq[(In[A], Out[A])])(implicit an: Analytic[A]): Seq[ScoredSample[In[A], Out[A]]] =
-    data.map{ case (in, out) => ScoredSample(
+  def score[A](inst: Type[A])(data: Seq[(In[A], Out[A])])(implicit an: Analytic[A]): Seq[Sample[In[A], Out[A]]] =
+    data.map{ case (in, out) => Sample(
       input = in,
       expected = out,
       actual = apply(inst)(in)
