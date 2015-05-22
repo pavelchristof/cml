@@ -1,10 +1,19 @@
 package cml.optimization
 
-trait GradTrans[V[_], A] {
-  def apply(grad: V[A]): V[A]
+import cml.algebra.traits._
 
-  final def andThen(tr: GradTrans[V, A]): GradTrans[V, A] =
-    new GradTrans[V, A] {
-      override def apply(grad: V[A]): V[A] = GradTrans.this(tr(grad))
+trait GradTrans {
+  def create[V[_], A]()(implicit fl: Floating[A], space: LocallyConcrete[V]): (V[A]) => V[A]
+
+  def andThen(tr: GradTrans): GradTrans = new GradTrans {
+    override def create[V[_], A]()(implicit fl: Floating[A], space: LocallyConcrete[V]): (V[A]) => V[A] = {
+      val f = GradTrans.this.create[V, A]()
+      val g = tr.create[V, A]()
+      x => g(f(x))
     }
+  }
+}
+
+object GradTrans {
+
 }

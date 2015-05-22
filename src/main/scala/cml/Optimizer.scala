@@ -7,10 +7,11 @@ trait Optimizer[In[_], Out[_]] {
   def apply[A](
     population: Vector[model.Type[A]],
     data: Seq[(In[A], Out[A])],
-    costFun: CostFun[In, Out]
+    costFun: CostFun[In, Out],
+    default: => A
   )(implicit
     fl: Floating[A],
     cmp: Ordering[A],
     diffEngine: ad.Engine
-  ): Vector[model.Type[A]]
+  ): Vector[(A, model.Type[A])]
 }

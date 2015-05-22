@@ -10,32 +10,38 @@ import scalaz.Functor
 /**
  * Basic gradient descent.
  */
-abstract case class GradientDescent[In[_], Out[_]] (
+case class GradientDescent[In[_], Out[_]] (
   model: Model[In, Out],
-  iterations: Int
+  iterations: Int,
+  gradTrans: GradTrans = Stabilize
 )(implicit
   inFunctor: Functor[In],
   outFunctor: Functor[Out]
 ) extends Optimizer[In, Out] {
   implicit val space = model.space
 
-  def newGradTrans[A]()(implicit fl: Floating[A]): GradTrans[model.Type, A]
-
   override def apply[A](
     population: Vector[model.Type[A]],
     data: Seq[(In[A], Out[A])],
-    costFun: CostFun[In, Out]
+    costFun: CostFun[In, Out],
+    default: => A
   )(implicit
     fl: Floating[A],
     cmp: Ordering[A],
     diffEngine: cml.ad.Engine
-  ): Vector[model.Type[A]] = {
+  ): Vector[(A, model.Type[A])] = {
     import diffEngine._
 
     // Select or create a model instance.
-    val selector = SelectBest(model)
-    var inst: model.Type[A] = selector(population.asInstanceOf[Vector[selector.model.Type[A]]], data, costFun)
-      .applyOrElse(0, (_: Int) => model.symmetryBreaking(new Random())(fl))
+    val selector = SelectBest(model, count = 1)
+    var inst: model.Type[A] =
+      selector(
+        population.asInstanceOf[Vector[selector.model.Type[A]]],
+        data,
+        costFun,
+        default)
+      .head
+      ._2
       .asInstanceOf[model.Type[A]]
 
     def costOnSample(sample: (In[A], Out[A]))(inst: model.Type[Aug[A]], ctx: Context[A]): Aug[A] = {
@@ -57,8 +63,7 @@ abstract case class GradientDescent[In[_], Out[_]] (
     def totalCost(inst: model.Type[A]): A =
       costFun[model.Type, A](inst, model.score(inst)(data))
 
-    val tr = newGradTrans()
-
+    val tr = gradTrans.create()
     for (i <- 0 until iterations) {
       var gradAcc = space.zero
 
@@ -74,6 +79,6 @@ abstract case class GradientDescent[In[_], Out[_]] (
       println(s"Iteration $i: ${totalCost(inst)}")
     }
 
-    Vector(inst)
+    Vector((totalCost(inst), inst))
   }
 }

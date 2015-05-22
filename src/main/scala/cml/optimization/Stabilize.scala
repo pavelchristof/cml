@@ -1,11 +1,8 @@
 package cml.optimization
 
-import cml.algebra.traits.{LocallyConcrete, Floating}
+import cml.algebra.traits._
 
-case class Stabilize[V[_], A] (
-  implicit fl: Floating[A],
-  space: LocallyConcrete[V]
-) extends GradTrans[V, A] {
-  override def apply(grad: V[A]): V[A] =
-    space.mapLC(grad)(x => if (fl.isNaN(x)) fl.zero else x)
+object Stabilize extends GradTrans {
+  override def create[V[_], A]()(implicit fl: Floating[A], space: LocallyConcrete[V]): (V[A]) => V[A] =
+    space.mapLC(_)(x => if (fl.isNaN(x)) fl.zero else x)
 }

@@ -5,6 +5,7 @@ import cml.models._
 import cml.optimization._
 import shapeless.Nat
 
+import scala.util.Random
 import scalaz._
 
 object ModelTest extends App {
@@ -43,19 +44,23 @@ object ModelTest extends App {
     (4d, 0d)
   )
 
-  val optimizer = new GradientDescent(
-    model,
-    iterations = 1000
-  )(vecIn, vecOut) {
-    override def newGradTrans[A]()(implicit fl: Floating[A]): GradTrans[model.Type, A] =
-      Stabilize[model.Type, A]
-        .andThen(AdaGrad[model.Type, A])
-        .andThen(Scale[model.Type, A](fl.fromDouble(1)))
-  }
+  var rng = new Random()
 
-  optimizer[Double](Vector.empty, data, costFun) match {
-    case Vector(learned) => for (i <- Array(1d, 2d, 3d, 4d)) {
-      println(model(learned.asInstanceOf[model.Type[Double]])(i))
-    }
+  val optimizer = MultiOpt(
+    populationSize = 16,
+    optimizer = GradientDescent(
+      model,
+      iterations = 1000,
+      gradTrans = Stabilize.andThen(AdaGrad)
+    )
+  )
+
+  val learned = optimizer[Double](Vector.empty, data, costFun, rng.nextDouble() * 2 - 1)
+      .minBy(_._1)
+      ._2
+      .asInstanceOf[model.Type[Double]]
+
+  for (i <- Array(1d, 2d, 3d, 4d)) {
+    println(model(learned)(i))
   }
 }
