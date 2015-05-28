@@ -11,9 +11,14 @@ abstract class CostFun[In[_], Out[_]] {
     data.map(scoreSample(_)).fold[A](_0)(_ + _) / fromInt(data.size)
   }
 
+  def sum[A](data: Seq[Sample[In[A], Out[A]]])(implicit an: Analytic[A]): A = {
+    import an.analyticSyntax._
+    data.map(scoreSample(_)).fold[A](_0)(_ + _)
+  }
+
   def apply[V[_], A](
     instance: V[A],
     data: Seq[Sample[In[A], Out[A]]]
   )(implicit an: Analytic[A], space: LocallyConcrete[V]): A =
-    an.add(mean(data), regularization(instance))
+    an.add(sum(data), regularization(instance))
 }

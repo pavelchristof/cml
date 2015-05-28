@@ -1,16 +1,15 @@
 package cml.optimization
 
 import cml._
-import cml.ad
 import cml.algebra.traits._
 
 import scala.util.Random
 import scalaz.Functor
 
 /**
- * Basic gradient descent.
+ * Stochastic gradient descent.
  */
-case class GradientDescent[In[_], Out[_]] (
+case class StochasticGradientDescent[In[_], Out[_]] (
   model: Model[In, Out],
   iterations: Int,
   gradTrans: GradTrans = Stabilize
@@ -65,30 +64,21 @@ case class GradientDescent[In[_], Out[_]] (
 
     val tr = gradTrans.create()
     val rng = new Random()
-    var best = inst
-    var bestCost = totalCost(best)
 
     for (i <- 1 to iterations) {
-      var gradAcc = data
-        .toParArray
-        .map(sample => {
-          gradLC[A, model.Type](costOnSample(sample)(_, _))(fl, space)(inst)
-        })
-        .fold(space.zero)(space.add(_, _))
+      var gradAcc = space.zero
+
+      for (sample <- rng.shuffle(data)) {
+        val grad = gradLC[A, model.Type](costOnSample(sample)(_, _))(fl, space)(inst)
+        inst = space.sub(inst, tr(grad))
+      }
 
       val gradReg = gradLC[A, model.Type](reg(_, _))(fl, space)(inst)
-      gradAcc = space.add(gradAcc, gradReg)
+      inst = space.sub(inst, tr(gradReg))
 
-      inst = space.sub(inst, tr(gradAcc))
-      val cost = totalCost(inst)
-      println(s"Iteration $i: ${cost}")
-
-      if (cmp.lt(cost, bestCost)) {
-        best = inst
-        bestCost = cost
-      }
+      println(s"Iteration $i: ${totalCost(inst)}")
     }
 
-    Vector((bestCost, best))
+    Vector((totalCost(inst), inst))
   }
 }

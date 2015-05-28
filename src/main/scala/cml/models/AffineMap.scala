@@ -12,8 +12,7 @@ case class AffineMap[In[_], Out[_]] (
 
   override type Type[A] = Out[biased.Type[A]]
 
-  override implicit val space = Compose[Out, biased.Type]
-    .locallyConcrete(outLC, biased)
+  override implicit val space = Compose[Out, biased.Type].concrete(outLC, biased)
 
   override def apply[F](inst: Type[F])(input: In[F])(implicit f: Analytic[F]): Out[F] = {
     import f.analyticSyntax._

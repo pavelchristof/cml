@@ -3,7 +3,7 @@ package cml.algebra
 import cml.Enumerate
 import cml.algebra.traits._
 
-import scalaz.Monoid
+import scalaz.{Functor, Monoid}
 
 /**
  * Constant functor (and a 0 dimensional vector space).
@@ -11,6 +11,11 @@ import scalaz.Monoid
 case class Constant[C, A] (value: C)
 
 object Constant {
+  def functor[C]: Functor[({type T[A] = Constant[C, A]})#T] = new Functor[({type T[A] = Constant[C, A]})#T] {
+    override def map[A, B](fa: Constant[C, A])(f: (A) => B): Constant[C, B] =
+      Constant(fa.value)
+  }
+
   def concrete[C](implicit m: Monoid[C]): Concrete[({type T[A] = Constant[C, A]})#T] =
     new Concrete[({type T[A] = Constant[C, A]})#T] {
       override type Index = Void
