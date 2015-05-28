@@ -7,7 +7,7 @@ case class LinAffinMap[In1[_], In2[_], Out[_]] (
   implicit in1Space: Concrete[In1],
   in2Space: Concrete[In2],
   outSpace: Concrete[Out]
-) extends Model[algebra.Product[In1, In2]#Type, Out] {
+) extends Model[({type T[A] = (In1[A], In2[A])})#T, Out] {
   implicit val affineMap = AffineMap[In2, Out]()(in2Space, outSpace)
   implicit val linAffinMap = LinearMap[In1, affineMap.Type]()(in1Space, affineMap.space)
 

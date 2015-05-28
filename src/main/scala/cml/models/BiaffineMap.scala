@@ -18,5 +18,5 @@ case class BiaffineMap[In1[_], In2[_], Out[_]] (
     affineMap(biaffineMap(inst)(input._1))(input._2)
 
   override def fill[F](x: => F)(implicit a: Additive[F]): Type[F] =
-    biaffineMap.fill(x)
+    biaffineMap.fill[F](x)
 }

@@ -2,11 +2,6 @@ package cml.algebra.traits
 
 import cml.Enumerate
 
-import scala.reflect.ClassTag
-import scalaz.Functor
-
-
-
 /**
  * Potentially infinitely dimensional vector space with a countable (normal) basis and the property that for each
  * vector v a locally concrete vector space contains a concrete subspace including v and closed under projection on
