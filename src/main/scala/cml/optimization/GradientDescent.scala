@@ -31,6 +31,7 @@ case class GradientDescent[In[_], Out[_]] (
     diffEngine: cml.ad.Engine
   ): Vector[(A, model.Type[A])] = {
     import diffEngine._
+    import fl.analyticSyntax._
 
     // Select or create a model instance.
     val selector = SelectBest(model, count = 1)
@@ -61,10 +62,9 @@ case class GradientDescent[In[_], Out[_]] (
     }
 
     def totalCost(inst: model.Type[A]): A =
-      costFun[model.Type, A](inst, model.score(inst)(data))
+      costFun.mean(model.score(inst)(data)) + costFun.regularization[model.Type, A](inst)
 
     val tr = gradTrans.create()
-    val rng = new Random()
     var best = inst
     var bestCost = totalCost(best)
 
@@ -75,6 +75,7 @@ case class GradientDescent[In[_], Out[_]] (
           gradLC[A, model.Type](costOnSample(sample)(_, _))(fl, space)(inst)
         })
         .fold(space.zero)(space.add(_, _))
+      gradAcc = space.div(gradAcc, fl.fromInt(data.size))
 
       val gradReg = gradLC[A, model.Type](reg(_, _))(fl, space)(inst)
       gradAcc = space.add(gradAcc, gradReg)

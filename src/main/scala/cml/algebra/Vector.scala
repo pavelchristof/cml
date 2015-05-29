@@ -78,4 +78,11 @@ object Vector {
 
   def apply[S <: Nat](n: S)(implicit size: ToInt[S]) =
     new VectorImpl[S]
+
+  def apply(n: Int): VectorImpl[S] forSome {type S <: Nat} = {
+    assert(n >= 0)
+    new VectorImpl[Nat]()(new ToInt[Nat] {
+      override def apply(): Int = n
+    })
+  }
 }

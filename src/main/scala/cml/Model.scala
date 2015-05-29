@@ -2,10 +2,6 @@ package cml
 
 import cml.algebra.traits._
 
-import scala.reflect.ClassTag
-import scala.util.Random
-import scalaz.Functor
-
 /**
  * Machine learning models expressible as a differentiable function, mapping some input to some output.
  *
@@ -39,12 +35,6 @@ trait Model[In[_], Out[_]] {
    * @tparam A The number type.
    */
   def fill[A](x: => A)(implicit a: Additive[A]): Type[A]
-
-  /**
-   * Initializes the model with small, random real numbers to break symmetry.
-   */
-  def symmetryBreaking[A](random: Random)(implicit a: Analytic[A]): Type[A] =
-    fill(a.fromDouble((random.nextDouble() * 2) - 1))
 
   /**
    * Scores the data set.
