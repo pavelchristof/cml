@@ -72,17 +72,25 @@ class VectorImpl[S <: Nat](implicit size: ToInt[S])
     v.vec.foldRight(z)(op(_, _))
 }
 
+trait RuntimeNat {
+  type Type <: Nat
+  def apply(): ToInt[Type]
+}
+
+object RuntimeNat {
+  def apply(n: Int): RuntimeNat = new RuntimeNat {
+    assert(n >= 0)
+    override type Type = Nat
+    override def apply(): ToInt[Type] = new ToInt[Type] {
+      override def apply(): Int = n
+    }
+  }
+}
+
 object Vector {
-  def apply[S <: Nat](implicit size: ToInt[S]) =
-    new VectorImpl[S]
+  def apply[S <: Nat](size: ToInt[S]) =
+    new VectorImpl[S]()(size)
 
   def apply[S <: Nat](n: S)(implicit size: ToInt[S]) =
     new VectorImpl[S]
-
-  def apply(n: Int): VectorImpl[S] forSome {type S <: Nat} = {
-    assert(n >= 0)
-    new VectorImpl[Nat]()(new ToInt[Nat] {
-      override def apply(): Int = n
-    })
-  }
 }
