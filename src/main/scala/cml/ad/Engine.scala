@@ -1,7 +1,6 @@
 package cml.ad
 
-import cml.algebra.{Field, Analytic}
-import cml.algebra.traits._
+import cml.algebra._
 
 /**
  * Automatic differentiation engine.
@@ -11,37 +10,39 @@ trait Engine {
   type Context[_]
 
   /**
-   * Aug[F] is a field given that F is one.
+   * Aug[A] is a field given that F is one.
    */
-  implicit def field[F](implicit f: Field[F], ctx: Context[F]): Field[Aug[F]]
+  implicit def field[A](implicit f: Field[A], ctx: Context[A]): Field[Aug[A]]
 
   /**
-   * Aug[F] is an analytic field given that F is one.
+   * Aug[A] is an analytic field given that F is one.
    */
-  implicit def analytic[F](implicit f: Analytic[F], ctx: Context[F]): Analytic[Aug[F]]
+  implicit def analytic[A](implicit f: Analytic[A], ctx: Context[A]): Analytic[Aug[A]]
 
   /**
    * Injects a constant value into the augmented field.
    */
-  def constant[F](x: F)(implicit field: Field[F]): Aug[F]
+  def constant[A](x: A)(implicit field: Field[A]): Aug[A]
 
   /**
    * Differentiates a function.
    */
-  def diff[F](f: (Aug[F], Context[F]) => Aug[F])(implicit field: Field[F]): (F) => F
+  def diff[A](f: (Aug[A], Context[A]) => Aug[A])(implicit field: Field[A]): (A) => A
 
   /**
    * Computes a function value and its derivative.
    */
-  def diffWithValue[F](f: (Aug[F], Context[F]) => Aug[F])(implicit field: Field[F]): (F) => (F, F)
+  def diffWithValue[A](f: (Aug[A], Context[A]) => Aug[A])(implicit field: Field[A]): (A) => (A, A)
 
   /**
    * Computes the gradient of a function taking a vector as the argument.
    */
-  def grad[F, V[_]](f: (V[Aug[F]], Context[F]) => Aug[F])(implicit field: Field[F], space: Concrete[V]): (V[F]) => V[F]
+  def grad[A, V[_]](f: (V[Aug[A]], Context[A]) => Aug[A])
+      (implicit field: Field[A], space: Cartesian[V]): (V[A]) => V[A]
 
   /**
    * Computes the value and gradient of a function taking a vector as the argument.
    */
-  def gradWithValue[F, V[_]](f: (V[Aug[F]], Context[F]) => Aug[F])(implicit field: Field[F], space: Concrete[V]): (V[F]) => (F, V[F])
+  def gradWithValue[A, V[_]](f: (V[Aug[A]], Context[A]) => Aug[A])
+      (implicit field: Field[A], space: Cartesian[V]): (V[A]) => (A, V[A])
 }

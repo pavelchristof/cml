@@ -1,14 +1,13 @@
 package cml.models
 
 import cml._
-import cml.algebra.Analytic
-import cml.algebra.traits._
+import cml.algebra._
 
-case class BiaffineMap[In1[_], In2[_], Out[_]] (
-  implicit in1Space: Concrete[In1],
-  in2Space: Concrete[In2],
-  outSpace: Concrete[Out]
-) extends Model[algebra.Product[In1, In2]#Type, Out] {
+case class BiaffineMap[In1[_], In2[_], Out[_]] (implicit
+  in1Space: Cartesian[In1],
+  in2Space: Cartesian[In2],
+  outSpace: Cartesian[Out]
+) extends Model[({type T[A] = (In1[A], In2[A])})#T, Out] {
   implicit val affineMap = AffineMap[In2, Out]()(in2Space, outSpace)
   implicit val biaffineMap = AffineMap[In1, affineMap.Type]()(in1Space, affineMap.space)
 

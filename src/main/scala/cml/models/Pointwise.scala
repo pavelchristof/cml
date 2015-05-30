@@ -1,20 +1,17 @@
 package cml.models
 
-import cml.algebra.{AnalyticMap, Analytic}
-import cml.{Model, algebra}
-import cml.algebra.traits._
-import shapeless.Nat
+import cml._
+import cml.algebra._
 
 case class Pointwise[V[_]] (
   f: AnalyticMap
-) (
-  implicit c: Concrete[V]
+) (implicit
+  c: Cartesian[V]
 ) extends Model[V, V] {
-  val vec = algebra.Vec(Nat(0))
-  override type Type[A] = vec.Type[A]
+  override type Type[A] = Unit
 
-  override implicit val space = vec
+  override implicit val space = Cartesian.Zero
 
-  def apply[F](inst: Type[F])(input: V[F])(implicit field: Analytic[F]): V[F] =
+  def apply[A](inst: Type[A])(input: V[A])(implicit A: Analytic[A]): V[A] =
     c.map(input)(f(_))
 }

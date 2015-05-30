@@ -96,4 +96,6 @@ object Normed {
       }
     }
   }
+
+  implicit def map[K] = new MapInst[K]
 }

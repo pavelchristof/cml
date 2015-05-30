@@ -1,125 +1,124 @@
 package cml.ad
 
-import cml.algebra.{Field, Analytic}
-import cml.algebra.traits._
+import cml.algebra._
 
 object Forward extends Engine {
-  case class Aug[F] (
-    _1: F,
-    _2: F
+  case class Aug[A] (
+    _1: A,
+    _2: A
   )
-  type Context[F] = DummyImplicit
+  type Context[A] = DummyImplicit
 
-  private class AugField[F](implicit f: Field[F]) extends Field[Aug[F]] {
+  private class AugField[A](implicit f: Field[A]) extends Field[Aug[A]] {
     import f.fieldSyntax._
 
-    override val zero: Aug[F] =
+    override val zero: Aug[A] =
       Aug(_0, _0)
 
-    override def add(x: Aug[F], y: Aug[F]): Aug[F] =
+    override def add(x: Aug[A], y: Aug[A]): Aug[A] =
       Aug(x._1 + y._1, x._2 + y._2)
 
-    override def neg(x: Aug[F]): Aug[F] =
+    override def neg(x: Aug[A]): Aug[A] =
       Aug(-x._1, -x._2)
 
-    override val one: Aug[F] =
+    override val one: Aug[A] =
       Aug(_1, _0)
 
-    override def mul(x: Aug[F], y: Aug[F]): Aug[F] =
+    override def mul(x: Aug[A], y: Aug[A]): Aug[A] =
       Aug(x._1 * y._1, x._1 * y._2 + x._2 * y._1)
 
-    override def inv(x: Aug[F]): Aug[F] =
+    override def inv(x: Aug[A]): Aug[A] =
       Aug(f.inv(x._1), -x._2 / (x._1 * x._1))
 
-    override def fromInt(n: Int): Aug[F] =
+    override def fromInt(n: Int): Aug[A] =
       Aug(f.fromInt(n), _0)
   }
 
-  private class AugAnalytic[F](implicit f: Analytic[F]) extends AugField[F] with Analytic[Aug[F]] {
+  private class AugAnalytic[A](implicit f: Analytic[A]) extends AugField[A] with Analytic[Aug[A]] {
     import f.analyticSyntax._
 
-    override def abs(x: Aug[F]): Aug[F] =
+    override def abs(x: Aug[A]): Aug[A] =
       Aug(x._1.abs, x._2.signum)
 
-    override def signum(x: Aug[F]): Aug[F] =
+    override def signum(x: Aug[A]): Aug[A] =
       Aug(x._1.signum, _0)
 
-    override def exp(x: Aug[F]): Aug[F] = {
+    override def exp(x: Aug[A]): Aug[A] = {
       val y = x._1.exp
       Aug(y, y * x._2)
     }
 
-    override def log(x: Aug[F]): Aug[F] =
+    override def log(x: Aug[A]): Aug[A] =
       Aug(x._1.log, x._2 / x._1)
 
-    override def sqrt(x: Aug[F]): Aug[F] = {
+    override def sqrt(x: Aug[A]): Aug[A] = {
       val y = x._1.sqrt
       Aug(y, x._2 / (y + y))
     }
 
-    override def sin(x: Aug[F]): Aug[F] =
+    override def sin(x: Aug[A]): Aug[A] =
       Aug(x._1.sin, x._2 * x._1.cos)
 
-    override def cos(x: Aug[F]): Aug[F] =
+    override def cos(x: Aug[A]): Aug[A] =
       Aug(x._1.cos, -x._2 * x._1.sin)
 
-    override def tan(x: Aug[F]): Aug[F] =
+    override def tan(x: Aug[A]): Aug[A] =
       Aug(x._1.tan, (x._2 + x._2) / (_1 + (x._1 + x._1).cos))
 
-    override def asin(x: Aug[F]): Aug[F] =
+    override def asin(x: Aug[A]): Aug[A] =
       Aug(x._1.asin, x._2 / (_1 + -x._1 * x._1).sqrt)
 
-    override def acos(x: Aug[F]): Aug[F] =
+    override def acos(x: Aug[A]): Aug[A] =
       Aug(x._1.acos, -x._2 / (_1 + -x._1 * x._1).sqrt)
 
-    override def atan(x: Aug[F]): Aug[F] =
+    override def atan(x: Aug[A]): Aug[A] =
       Aug(x._1.atan, x._2 / (_1 + x._1 * x._1))
 
-    override def sinh(x: Aug[F]): Aug[F] =
+    override def sinh(x: Aug[A]): Aug[A] =
       Aug(x._1.sinh, x._2 * x._1.cosh)
 
-    override def cosh(x: Aug[F]): Aug[F] =
+    override def cosh(x: Aug[A]): Aug[A] =
       Aug(x._1.cosh, x._2 * x._1.sinh)
 
-    override def tanh(x: Aug[F]): Aug[F] = {
+    override def tanh(x: Aug[A]): Aug[A] = {
       val q = x._1.cosh
       val p = _1 + (x._1 + x._1).cosh
       Aug(x._1.tanh, (x._2 * q * q * f.fromInt(4)) / (p * p))
     }
 
-    override def fromFloat(x: Float): Aug[F] =
+    override def fromFloat(x: Float): Aug[A] =
       Aug(f.fromFloat(x), _0)
 
-    override def fromDouble(x: Double): Aug[F] =
+    override def fromDouble(x: Double): Aug[A] =
       Aug(f.fromDouble(x), _0)
   }
 
   /**
-   * Aug[F] is field given that F is one.
+   * Aug[A] is field given that F is one.
    */
-  override implicit def field[F](implicit f: Field[F], ctx: Context[F]): Field[Aug[F]] = new AugField[F]
+  override implicit def field[A](implicit f: Field[A], ctx: Context[A]): Field[Aug[A]] = new AugField[A]
 
   /**
-   * Aug[F] is an analytic field given that F is one.
+   * Aug[A] is an analytic field given that F is one.
    */
-  override implicit def analytic[F](implicit f: Analytic[F], ctx: Context[F]): Analytic[Aug[F]] = new AugAnalytic[F]
+  override implicit def analytic[A](implicit f: Analytic[A], ctx: Context[A]): Analytic[Aug[A]] = new AugAnalytic[A]
 
   /**
    * Injects a constant value into the augmented field.
    */
-  override def constant[F](x: F)(implicit field: Field[F]): Aug[F] =
+  override def constant[A](x: A)(implicit field: Field[A]): Aug[A] =
     Aug(x, field.zero)
 
   /**
    * Differentiates a function.
    */
-  override def diff[F](f: (Aug[F], Context[F]) => Aug[F])(implicit field: Field[F]): (F) => F =
+  override def diff[A](f: (Aug[A], Context[A]) => Aug[A])(implicit field: Field[A]): (A) => A =
     diffWithValue(f)(field)(_)._2
 
   /**
    * Computes a function value and its derivative.
    */
-  override def diffWithValue[F](f: (Aug[F], Context[F]) => Aug[F])(implicit field: Field[F]): (F) => (F, F) =
+  override def diffWithValue[A](f: (Aug[A], Context[A]) => Aug[A])(implicit field: Field[A]): (A) => (A, A) =
     x => {
       val r = f(Aug(x, field.one), DummyImplicit.dummyImplicit)
       (r._1, r._2)
@@ -128,8 +127,8 @@ object Forward extends Engine {
   /**
    * Computes the gradient of a function taking a vector as the argument.
    */
-  override def grad[F, V[_]](f: (V[Aug[F]], Context[F]) => Aug[F])
-      (implicit field: Field[F], space: Concrete[V]): (V[F]) => V[F] = x => {
+  override def grad[A, V[_]](f: (V[Aug[A]], Context[A]) => Aug[A])
+      (implicit field: Field[A], space: Cartesian[V]): (V[A]) => V[A] = x => {
     space.tabulate(i => {
       val input = space.tabulate(j =>
         Aug(space.index(x)(i), if (i == j) field.one else field.zero))
@@ -140,8 +139,8 @@ object Forward extends Engine {
   /**
    * Computes the value and gradient of a function taking a vector as the argument.
    */
-  override def gradWithValue[F, V[_]](f: (V[Aug[F]], Context[F]) => Aug[F])
-      (implicit field: Field[F], space: Concrete[V]): (V[F]) => (F, V[F]) = x => {
+  override def gradWithValue[A, V[_]](f: (V[Aug[A]], Context[A]) => Aug[A])
+      (implicit field: Field[A], space: Cartesian[V]): (V[A]) => (A, V[A]) = x => {
     val value = f(space.tabulate(i => Aug(space.index(x)(i), field.zero)), DummyImplicit.dummyImplicit)._1
     (value, grad(f)(field, space)(x))
   }

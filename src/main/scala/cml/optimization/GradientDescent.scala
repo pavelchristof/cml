@@ -1,10 +1,7 @@
 package cml.optimization
 
 import cml._
-import cml.algebra.{Subspace, Floating}
-import cml.algebra.traits._
-
-import scalaz.Functor
+import cml.algebra._
 
 /**
  * Basic gradient descent.
@@ -15,8 +12,8 @@ case class GradientDescent[In[_], Out[_]] (
   gradTrans: GradTrans = Stabilize,
   chunkSize: Int = 50
 )(implicit
-  inLC: LocallyConcrete[In],
-  outLC: LocallyConcrete[Out]
+  inSpace: Representable[In],
+  outSpace: Representable[Out]
 ) extends Optimizer[In, Out] {
   implicit val space = model.space
 
@@ -37,8 +34,8 @@ case class GradientDescent[In[_], Out[_]] (
     def costOnSamples(samples: Seq[(In[A], Out[A])])(inst: subspace.Type[Aug[A]], ctx: Context[A]): Aug[A] = {
       implicit val an = analytic(fl, ctx)
       samples.map(sample => {
-        val input = inFunctor.map(sample._1)(constant(_))
-        val output = outFunctor.map(sample._2)(constant(_))
+        val input = inSpace.map(sample._1)(constant(_))
+        val output = outSpace.map(sample._2)(constant(_))
         val scored = Sample(
           input = input,
           expected = output,
@@ -49,12 +46,12 @@ case class GradientDescent[In[_], Out[_]] (
     }
 
     def reg(inst: subspace.Type[Aug[A]], ctx: Context[A]): Aug[A] = {
-      costFun.regularization[subspace.Type, Aug[A]](inst)(analytic(fl, ctx), subspace.concrete)
+      costFun.regularization[subspace.Type, Aug[A]](inst)(analytic(fl, ctx), subspace.space)
     }
 
     def totalCost(inst: subspace.Type[A]): A =
       costFun.mean(model.applyParSeq(subspace.inject(inst))(data.par)) +
-        costFun.regularization[subspace.Type, A](inst)(fl, subspace.concrete)
+        costFun.regularization[subspace.Type, A](inst)(fl, subspace.space)
 
     // Select or create a model instance.
     val selector = SelectBest(model, count = 1)
@@ -72,21 +69,21 @@ case class GradientDescent[In[_], Out[_]] (
     var inst = subspace.project(instLC)
     var best = inst
     var bestCost = totalCost(best)
-    val tr = gradTrans.create[subspace.Type, A]()(fl, subspace.concrete)
+    val tr = gradTrans.create[subspace.Type, A]()(fl, subspace.space)
 
     for (i <- 1 to iterations) {
       var gradAcc = data
         .grouped(chunkSize)
         .map(samples =>
-          grad[A, subspace.Type](costOnSamples(samples)(_, _))(fl, subspace.concrete)(inst)
+          grad[A, subspace.Type](costOnSamples(samples)(_, _))(fl, subspace.space)(inst)
         )
-        .reduce(subspace.concrete.add(_, _))
-      gradAcc = subspace.concrete.div(gradAcc, fl.fromInt(data.size))
+        .reduce(subspace.space.add(_, _))
+      gradAcc = subspace.space.div(gradAcc, fl.fromInt(data.size))
 
-      val gradReg = grad[A, subspace.Type](reg(_, _))(fl, subspace.concrete)(inst)
-      gradAcc = subspace.concrete.add(gradAcc, gradReg)
+      val gradReg = grad[A, subspace.Type](reg(_, _))(fl, subspace.space)(inst)
+      gradAcc = subspace.space.add(gradAcc, gradReg)
 
-      inst = subspace.concrete.sub(inst, tr(gradAcc))
+      inst = subspace.space.sub(inst, tr(gradAcc))
       val cost = totalCost(inst)
       println(s"Iteration $i: ${cost}")
 

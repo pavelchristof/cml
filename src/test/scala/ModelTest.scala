@@ -1,39 +1,43 @@
 import cml._
-import cml.algebra.{AnalyticMap, Analytic}
-import cml.algebra.Instances._
-import cml.algebra.traits._
+import cml.algebra._
 import cml.models._
 import cml.optimization._
-import shapeless.Nat
+import Cartesian._
+import Floating._
 
 import scala.util.Random
 import scalaz._
 
 object ModelTest extends App {
   implicit val diffEngine = ad.Backward
-  implicit val vecIn = algebra.Scalar
-  implicit val vecHidden = algebra.Vec(Nat(1))
-  val vecOut = algebra.Scalar
-  implicit val vecTree = algebra.Compose[Tree, vecIn.Type]
+
+  val vecSize = RuntimeNat(1)
+
+  type VecIn[A] = A
+  type VecHidden[A] = Vec[vecSize.Type, A]
+  type VecOut[A] = A
+  type VecTree[A] = Tree[VecIn[A]]
+
+  implicit val vecHiddenSpace = Cartesian.vec(vecSize())
 
   val model = Chain4(
-    AffineMap[vecIn.Type, vecHidden.Type],
-    Pointwise[vecHidden.Type](AnalyticMap.sin),
-    AffineMap[vecHidden.Type, vecOut.Type],
-    Pointwise[vecOut.Type](AnalyticMap.sigmoid)
+    AffineMap[VecIn, VecHidden],
+    Pointwise[VecHidden](AnalyticMap.sin),
+    AffineMap[VecHidden, VecOut],
+    Pointwise[VecOut](AnalyticMap.sigmoid)
   )
 
-  val costFun = new CostFun[vecIn.Type, vecOut.Type] {
-    override def scoreSample[A](sample: Sample[vecIn.Type[A], vecOut.Type[A]])(implicit an: Analytic[A]): A = {
-      import an.analyticSyntax._
+  val costFun = new CostFun[VecIn, VecOut] {
+    override def scoreSample[A](sample: Sample[VecIn[A], VecOut[A]])(implicit a: Analytic[A]): A = {
+      import a.analyticSyntax._
       val eps = fromDouble(0.0001)
-      val e = sample.expected
-      val a = sample.actual
-      - (e * (a + eps).log + (_1 - e) * (_1 - a + eps).log)
+      val ex = sample.expected
+      val ac = sample.actual
+      - (ex * (ac + eps).log + (_1 - ex) * (_1 - ac + eps).log)
     }
 
-    override def regularization[V[_], A](inst: V[A])(implicit an: Analytic[A], space: Concrete[V]): A = {
-      import an.analyticSyntax._
+    override def regularization[V[_], A](inst: V[A])(implicit a: Analytic[A], space: Normed[V]): A = {
+      import a.analyticSyntax._
       fromDouble(0.001) * space.quadrance(inst)
     }
   }
@@ -58,7 +62,7 @@ object ModelTest extends App {
 
   val learned = optimizer[Double](
       population = Vector(),
-      subspace = optimizer.model.space.restrict(Set.empty[optimizer.model.space.Index]),
+      subspace = optimizer.model.space.restrict(Set.empty[optimizer.model.space.Key]),
       data = data,
       costFun = costFun,
       noise = rng.nextDouble() * 2 - 1)

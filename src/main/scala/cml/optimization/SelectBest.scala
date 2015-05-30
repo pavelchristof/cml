@@ -1,8 +1,7 @@
 package cml.optimization
 
 import cml._
-import cml.algebra.{Subspace, Floating}
-import cml.algebra.traits._
+import cml.algebra._
 
 /**
  * Selects the best instance from the population.
@@ -26,7 +25,7 @@ case class SelectBest[In[_], Out[_]] (
 
     def score(inst: model.Type[A]): A =
       costFun.mean(model.applyParSeq(inst)(data.par)) +
-        costFun.regularization[subspace.Type, A](subspace.project[A](inst))(fl, subspace.concrete)
+        costFun.regularization[subspace.Type, A](subspace.project[A](inst))(fl, subspace.space)
 
     var p = population
       .par
@@ -37,7 +36,7 @@ case class SelectBest[In[_], Out[_]] (
       .take(count)
 
     while (p.size < count) {
-      val inst: model.Type[A] = subspace.inject(subspace.concrete.point(noise))
+      val inst: model.Type[A] = subspace.inject(subspace.space.point(noise))
       val cost: A = score(inst)
       if (!fl.isNaN(cost)) {
         p +:= (cost, inst)

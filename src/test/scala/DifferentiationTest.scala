@@ -1,9 +1,9 @@
 import cml.ad
 import cml.algebra.Analytic
-import cml.algebra.traits._
-import cml.algebra.Instances._
+import cml.algebra._
 import org.scalacheck.Properties
 import org.scalacheck.Prop._
+import Floating._
 
 object DifferentiationTest extends Properties("Differentiation") {
   trait Fun {
@@ -180,7 +180,7 @@ object DifferentiationTest extends Properties("Differentiation") {
     import engine._
     for (fun <- funs) {
       def prepFun(x: Aug[Double], ctx: Context[Double]): Aug[Double] =
-        fun.value(x)(analytic(implicitly, ctx))
+        fun.value(x)(analytic(Floating.DoubleInst, ctx))
       val computedDeriv = diffWithValue[Double](prepFun)
       property(s"$name.${fun.description}") = forAll { (x: Double) => {
         val eVal = fun.value(x)

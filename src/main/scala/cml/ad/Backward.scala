@@ -1,47 +1,46 @@
 package cml.ad
 
-import cml.algebra.{Field, Analytic, Additive}
-import cml.algebra.traits._
+import cml.algebra._
 import scala.collection.mutable.Builder
 
 object Backward extends Engine {
-  case class Aug[F] (
+  case class Aug[A] (
     _1: Option[Int],
-    _2: F
+    _2: A
   )
 
-  sealed abstract class Cell[F]
+  sealed abstract class Cell[A]
 
-  case class Nullary[F] () extends Cell[F]
+  case class Nullary[A] () extends Cell[A]
 
-  case class Unary[F] (
+  case class Unary[A] (
     i: Int,
-    d: F
-  ) extends Cell[F]
+    d: A
+  ) extends Cell[A]
 
-  case class Binary[F] (
+  case class Binary[A] (
     i1: Int, i2: Int,
-    d1: F, d2: F
-  ) extends Cell[F]
+    d1: A, d2: A
+  ) extends Cell[A]
 
-  case class Context[F] (
-    tape: Builder[Cell[F], Array[Cell[F]]],
+  case class Context[A] (
+    tape: Builder[Cell[A], Array[Cell[A]]],
     var size: Int
   )
 
-  private def newContext[F]: Context[F] = {
-    val tape = Array.newBuilder[Cell[F]]
+  private def newContext[A]: Context[A] = {
+    val tape = Array.newBuilder[Cell[A]]
     tape.sizeHint(128)
     tape += Nullary()
     Context(tape, 1)
   }
 
-  private def newContextV[F, V[_]](implicit space: Concrete[V]): Context[F] = {
-    val tape = Array.newBuilder[Cell[F]]
-    val n = space.dimFin.toInt
+  private def newContextV[A, V[_]](implicit space: Cartesian[V]): Context[A] = {
+    val tape = Array.newBuilder[Cell[A]]
+    val n = space.dim
     tape.sizeHint(4 * n)
     var i = 0
-    val e = Nullary[F]()
+    val e = Nullary[A]()
     while (i < n) {
       tape += e
       i += 1
@@ -49,7 +48,7 @@ object Backward extends Engine {
     Context(tape, n)
   }
 
-  def newCell[F](cell: Cell[F])(implicit ctx: Context[F]): Option[Int] = cell match {
+  def newCell[A](cell: Cell[A])(implicit ctx: Context[A]): Option[Int] = cell match {
     case Nullary() => None
     case _ => {
       val i = ctx.size
@@ -59,107 +58,107 @@ object Backward extends Engine {
     }
   }
 
-  def unary[F](i: Option[Int], d: F): Cell[F] = i match {
+  def unary[A](i: Option[Int], d: A): Cell[A] = i match {
     case Some(n) => Unary(n, d)
     case _ => Nullary()
   }
 
-  def binary[F](i1: Option[Int], i2: Option[Int], d1: F, d2: F): Cell[F] = (i1, i2) match {
+  def binary[A](i1: Option[Int], i2: Option[Int], d1: A, d2: A): Cell[A] = (i1, i2) match {
     case (Some(n), Some(m)) => Binary(n, m, d1, d2)
     case (Some(n), _) => Unary(n, d1)
     case (_, Some(m)) => Unary(m, d2)
     case (_, _) => Nullary()
   }
 
-  private class AugField[F] (
-    implicit f: Field[F],
-    ctx: Context[F]
-  ) extends Field[Aug[F]] {
+  private class AugField[A] (
+    implicit f: Field[A],
+    ctx: Context[A]
+  ) extends Field[Aug[A]] {
     import f.fieldSyntax._
 
-    override val zero: Aug[F] = Aug(None, _0)
-    override val one: Aug[F] = Aug(None, _1)
+    override val zero: Aug[A] = Aug(None, _0)
+    override val one: Aug[A] = Aug(None, _1)
 
-    override def add(x: Aug[F], y: Aug[F]): Aug[F] =
+    override def add(x: Aug[A], y: Aug[A]): Aug[A] =
       Aug(newCell(binary(x._1, y._1, _1, _1)), x._2 + y._2)
-    override def neg(x: Aug[F]): Aug[F] =
+    override def neg(x: Aug[A]): Aug[A] =
       Aug(newCell(unary(x._1, -_1)), -x._2)
-    override def sub(x: Aug[F], y: Aug[F]): Aug[F] =
+    override def sub(x: Aug[A], y: Aug[A]): Aug[A] =
       Aug(newCell(binary(x._1, y._1, _1, -_1)), x._2 - y._2)
 
-    override def mul(x: Aug[F], y: Aug[F]): Aug[F] =
+    override def mul(x: Aug[A], y: Aug[A]): Aug[A] =
       Aug(newCell(binary(x._1, y._1, y._2, x._2)), x._2 * y._2)
-    override def inv(x: Aug[F]): Aug[F] =
+    override def inv(x: Aug[A]): Aug[A] =
       Aug(newCell(unary(x._1, -f.inv(x._2.square))), f.inv(x._2))
-    override def div(x: Aug[F], y: Aug[F]): Aug[F] =
+    override def div(x: Aug[A], y: Aug[A]): Aug[A] =
       Aug(newCell(binary(x._1, y._1, f.inv(y._2), -x._2 / y._2.square)), x._2 / y._2)
 
-    override def fromInt(n: Int): Aug[F] = Aug(None, f.fromInt(n))
+    override def fromInt(n: Int): Aug[A] = Aug(None, f.fromInt(n))
   }
 
-  private class AugAnalytic[F] (
-    implicit an: Analytic[F],
-    ctx: Context[F]
-  ) extends AugField[F] with Analytic[Aug[F]] {
+  private class AugAnalytic[A] (
+    implicit an: Analytic[A],
+    ctx: Context[A]
+  ) extends AugField[A] with Analytic[Aug[A]] {
     import an.analyticSyntax._
 
-    override def abs(x: Aug[F]): Aug[F] =
+    override def abs(x: Aug[A]): Aug[A] =
       Aug(newCell(unary(x._1, x._2.signum)), x._2.abs)
-    override def signum(x: Aug[F]): Aug[F] =
+    override def signum(x: Aug[A]): Aug[A] =
       Aug(newCell(unary(x._1, _0)), x._2.signum)
 
-    override def exp(x: Aug[F]): Aug[F] =
+    override def exp(x: Aug[A]): Aug[A] =
       Aug(newCell(unary(x._1, x._2.exp)), x._2.exp)
-    override def log(x: Aug[F]): Aug[F] =
+    override def log(x: Aug[A]): Aug[A] =
       Aug(newCell(unary(x._1, x._2.inv)), x._2.log)
 
-    override def sqrt(x: Aug[F]): Aug[F] =
+    override def sqrt(x: Aug[A]): Aug[A] =
       Aug(newCell(unary(x._1, (_2 * x._2.sqrt).inv)), x._2.sqrt)
 
-    override def sin(x: Aug[F]): Aug[F] =
+    override def sin(x: Aug[A]): Aug[A] =
       Aug(newCell(unary(x._1, x._2.cos)), x._2.sin)
-    override def cos(x: Aug[F]): Aug[F] =
+    override def cos(x: Aug[A]): Aug[A] =
       Aug(newCell(unary(x._1, -x._2.sin)), x._2.cos)
-    override def tan(x: Aug[F]): Aug[F] =
+    override def tan(x: Aug[A]): Aug[A] =
       Aug(newCell(unary(x._1, _2 / (_1 + (x._2 + x._2).cos))), x._2.tan)
 
-    override def asin(x: Aug[F]): Aug[F] =
+    override def asin(x: Aug[A]): Aug[A] =
       Aug(newCell(unary(x._1, (_1 - x._2.square).sqrt.inv)), x._2.asin)
-    override def acos(x: Aug[F]): Aug[F] =
+    override def acos(x: Aug[A]): Aug[A] =
       Aug(newCell(unary(x._1, -(_1 - x._2.square).sqrt.inv)), x._2.acos)
-    override def atan(x: Aug[F]): Aug[F] =
+    override def atan(x: Aug[A]): Aug[A] =
       Aug(newCell(unary(x._1, (_1 + x._2.square).inv)), x._2.atan)
 
-    override def sinh(x: Aug[F]): Aug[F] =
+    override def sinh(x: Aug[A]): Aug[A] =
       Aug(newCell(unary(x._1, x._2.cosh)), x._2.sinh)
-    override def cosh(x: Aug[F]): Aug[F] =
+    override def cosh(x: Aug[A]): Aug[A] =
       Aug(newCell(unary(x._1, x._2.sinh)), x._2.cosh)
-    override def tanh(x: Aug[F]): Aug[F] =
+    override def tanh(x: Aug[A]): Aug[A] =
       Aug(newCell(unary(x._1, (_4 * x._2.cosh) / ((x._2 + x._2).cosh + _1).square)), x._2.tanh)
 
-    override def fromFloat(x: Float): Aug[F] = Aug(None, an.fromFloat(x))
-    override def fromDouble(x: Double): Aug[F] = Aug(None, an.fromDouble(x))
+    override def fromFloat(x: Float): Aug[A] = Aug(None, an.fromFloat(x))
+    override def fromDouble(x: Double): Aug[A] = Aug(None, an.fromDouble(x))
   }
 
   /**
-   * Aug[F] is a field given that F is one.
+   * Aug[A] is a field given that F is one.
    */
-  override implicit def field[F](implicit f: Field[F], ctx: Context[F]): Field[Aug[F]] = new AugField[F]
+  override implicit def field[A](implicit f: Field[A], ctx: Context[A]): Field[Aug[A]] = new AugField[A]
 
   /**
-   * Aug[F] is an analytic field given that F is one.
+   * Aug[A] is an analytic field given that F is one.
    */
-  override implicit def analytic[F](implicit f: Analytic[F], ctx: Context[F]): Analytic[Aug[F]] = new AugAnalytic[F]
+  override implicit def analytic[A](implicit f: Analytic[A], ctx: Context[A]): Analytic[Aug[A]] = new AugAnalytic[A]
 
   /**
    * Injects a constant value into the augmented field.
    */
-  override def constant[F](x: F)(implicit field: Field[F]): Aug[F] = Aug(None, x)
+  override def constant[A](x: A)(implicit field: Field[A]): Aug[A] = Aug(None, x)
 
-  private def backpropagate[F](out: Int, ctx: Context[F])(implicit f: Field[F]): Array[F] = {
+  private def backpropagate[A](out: Int, ctx: Context[A])(implicit f: Field[A]): Array[A] = {
     import f.fieldSyntax._
     val tape = ctx.tape.result()
-    val arr = Array.fill[F](ctx.size)(_0)
+    val arr = Array.fill[A](ctx.size)(_0)
     arr(out) = _1
     for (i <- (ctx.size - 1).to(0, -1)) {
       tape(i) match {
@@ -178,15 +177,15 @@ object Backward extends Engine {
   /**
    * Differentiates a function.
    */
-  override def diff[F](f: (Aug[F], Context[F]) => Aug[F])(implicit field: Field[F]): (F) => F = (x: F) =>
+  override def diff[A](f: (Aug[A], Context[A]) => Aug[A])(implicit field: Field[A]): (A) => A = (x: A) =>
     diffWithValue(f)(field)(x)._2
 
   /**
    * Computes a function value and its derivative.
    */
-  override def diffWithValue[F](f: (Aug[F], Context[F]) => Aug[F])
-      (implicit field: Field[F]): (F) => (F, F) = (x: F) => {
-    val ctx = newContext[F]
+  override def diffWithValue[A](f: (Aug[A], Context[A]) => Aug[A])
+      (implicit field: Field[A]): (A) => (A, A) = (x: A) => {
+    val ctx = newContext[A]
     val res = f(Aug(Some(0), x), ctx)
     res._1 match {
       case Some(i) => {
@@ -197,16 +196,16 @@ object Backward extends Engine {
     }
   }
 
-  private def makeInput[F, V[_]](v: V[F], ctx: Context[F])(implicit space: Concrete[V], f: Field[F]): V[Aug[F]] = {
+  private def makeInput[A, V[_]](v: V[A], ctx: Context[A])(implicit space: Cartesian[V], f: Field[A]): V[Aug[A]] = {
     var i = 0
     space.tabulate(index => {
       val r = Aug(Some(i), space.index(v)(index))
       i += 1
       r
-    })(field[F](f, ctx))
+    })(field[A](f, ctx))
   }
 
-  private def makeGrad[F, V[_]](arr: Array[F])(implicit space: Concrete[V], a: Additive[F]): V[F] = {
+  private def makeGrad[A, V[_]](arr: Array[A])(implicit space: Cartesian[V], a: Additive[A]): V[A] = {
     var i = 0
     space.tabulate(_ => {
       val r = arr(i)
@@ -218,16 +217,16 @@ object Backward extends Engine {
   /**
    * Computes the gradient of a function taking a vector as the argument.
    */
-  override def grad[F, V[_]](f: (V[Aug[F]], Context[F]) => Aug[F])
-      (implicit field: Field[F], space: Concrete[V]): (V[F]) => V[F] = (v: V[F]) =>
+  override def grad[A, V[_]](f: (V[Aug[A]], Context[A]) => Aug[A])
+      (implicit field: Field[A], space: Cartesian[V]): (V[A]) => V[A] = (v: V[A]) =>
     gradWithValue(f)(field, space)(v)._2
 
   /**
    * Computes the value and gradient of a function taking a vector as the argument.
    */
-  override def gradWithValue[F, V[_]](f: (V[Aug[F]], Context[F]) => Aug[F])
-      (implicit field: Field[F], space: Concrete[V]): (V[F]) => (F, V[F]) = (v: V[F]) => {
-    val ctx = newContextV[F, V]
+  override def gradWithValue[A, V[_]](f: (V[Aug[A]], Context[A]) => Aug[A])
+      (implicit field: Field[A], space: Cartesian[V]): (V[A]) => (A, V[A]) = (v: V[A]) => {
+    val ctx = newContextV[A, V]
     val res = f(makeInput(v, ctx), ctx)
     res._1 match {
       case Some(j) => {

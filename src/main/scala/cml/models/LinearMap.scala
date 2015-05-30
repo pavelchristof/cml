@@ -4,13 +4,16 @@ import cml.Model
 import cml.algebra._
 
 case class LinearMap[In[_], Out[_]] (
-  implicit inLC: Concrete[In],
-  outLC: Concrete[Out]
+  implicit
+  inSpace: Cartesian[In],
+  outSpace: Cartesian[Out]
 ) extends Model[In, Out] {
   override type Type[A] = Out[In[A]]
 
-  override implicit val space = Compose[Out, In].concrete(outLC, inLC)
+  override implicit val space: Cartesian[Type] = implicitly
 
-  override def apply[F](inst: Type[F])(input: In[F])(implicit f: Analytic[F]): Out[F] =
-    outLC.map(inst)(inLC.dot(input, _))(inLC.additive, f)
+  import ZeroFunctor.asZero
+
+  override def apply[F](inst: Type[F])(input: In[F])(implicit a: Analytic[F]): Out[F] =
+    outSpace.map(inst)(inSpace.dot(input, _))
 }

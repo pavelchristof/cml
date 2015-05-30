@@ -3,8 +3,6 @@ package cml.algebra
 import shapeless.Nat
 import shapeless.ops.nat.ToInt
 
-import scala.reflect.ClassTag
-
 /**
  * A functor that maps field F to the cartesian space F&#94;n for some natural number n.
  */
@@ -65,7 +63,30 @@ object Cartesian {
   }
 
   implicit def compose[F[_], G[_]](implicit f: Cartesian[F], g: Cartesian[G]) = new Compose[F, G]
-  
+
+  implicit object Zero extends Cartesian[({type T[A] = Unit})#T] {
+    type Key = Void
+
+    override val dim: Int = 0
+
+    override def zero[A](implicit a: Zero[A]): Unit = ()
+
+    override def tabulate[A](v: (Void) => A)(implicit a: Zero[A]): Unit = ()
+
+    override def sum[A](v: Unit)(implicit a: Additive[A]): A = a.zero
+
+    override def index[A](v: Unit)(k: Void)(implicit a: Zero[A]): A =
+      throw new NoSuchElementException
+
+    override def applyC2[A, B, C](x: Unit, y: Unit)(h: (A, B) => C)
+        (implicit a: Zero[A], b: Zero[B], c: Zero[C]): Unit = ()
+
+    override def apply2[A, B, C](x: Unit, y: Unit)(h: (A, B) => C)
+        (implicit a: Zero[A], b: Zero[B], c: Zero[C]): Unit = ()
+
+    override def map[A, B](v: Unit)(h: (A) => B)(implicit a: Zero[A], b: Zero[B]): Unit = ()
+  }
+
   implicit object Scalar extends Cartesian[({type T[A] = A})#T] {
     type Key = Unit
 

@@ -1,8 +1,7 @@
 package cml.optimization
 
 import cml._
-import cml.algebra.{Subspace, Floating}
-import cml.algebra.traits._
+import cml.algebra._
 
 case class MultiOpt[In[_], Out[_]] (
   populationSize: Int,

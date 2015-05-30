@@ -1,15 +1,13 @@
 package cml.models
 
 import cml._
-import cml.algebra.Analytic
-import cml.algebra.traits.Analytic
-import shapeless.Nat
+import cml.algebra._
 
-case class Duplicate[V[_]] () extends Model[V, algebra.Product[V, V]#Type] {
-  val vec = algebra.Vec(Nat(0))
-  override type Type[A] = vec.Type[A]
+case class Duplicate[V[_]] () extends Model[V, ({type T[A] = (V[A], V[A])})#T] {
+  override type Type[A] = Unit
 
-  override implicit val space = vec
+  override implicit val space: Cartesian[Type] = implicitly
 
-  override def apply[F](inst: Type[F])(input: V[F])(implicit f: Analytic[F]): (V[F], V[F]) = (input, input)
+  override def apply[F](inst: Type[F])(input: V[F])(implicit f: Analytic[F]): (V[F], V[F]) =
+    (input, input)
 }
