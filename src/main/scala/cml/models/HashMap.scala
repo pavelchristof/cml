@@ -11,7 +11,7 @@ case class HashMap[K, V[_]] (implicit
   override type Type[A] = Map[K, V[A]]
 
   implicit val mapSpace = Normed.map[K]
-  override implicit val space: Representable[Type] = implicitly
+  override implicit val space = Representable.compose[({type T[A] = Map[K, A]})#T, V](Normed.map, valueSpace)
 
   import ZeroFunctor.asZero
 

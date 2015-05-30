@@ -20,9 +20,9 @@ case class GradientDescent[In[_], Out[_]] (
   override def apply[A](
     population: Vector[model.Type[A]],
     data: Seq[(In[A], Out[A])],
-    subspace: Subspace[model.Type],
     costFun: CostFun[In, Out],
-    noise: => A
+    noise: => A,
+    subspace: Subspace[model.Type] = model.space.restrict(Set())
   )(implicit
     fl: Floating[A],
     cmp: Ordering[A],
@@ -59,9 +59,9 @@ case class GradientDescent[In[_], Out[_]] (
       selector(
         population.asInstanceOf[Vector[selector.model.Type[A]]],
         data,
-        subspace.asInstanceOf[Subspace[selector.model.Type]],
         costFun,
-        noise)
+        noise,
+        subspace.asInstanceOf[Subspace[selector.model.Type]])
       .head
       ._2
       .asInstanceOf[model.Type[A]]

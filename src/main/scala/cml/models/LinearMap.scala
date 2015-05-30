@@ -10,7 +10,7 @@ case class LinearMap[In[_], Out[_]] (
 ) extends Model[In, Out] {
   override type Type[A] = Out[In[A]]
 
-  override implicit val space: Cartesian[Type] = implicitly
+  override implicit val space = Cartesian.compose[Out, In](outSpace, inSpace)
 
   import ZeroFunctor.asZero
 
