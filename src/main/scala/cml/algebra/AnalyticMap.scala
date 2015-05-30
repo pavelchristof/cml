@@ -1,4 +1,4 @@
-package cml.algebra.traits
+package cml.algebra
 
 trait AnalyticMap extends Serializable {
    def apply[F](x: F)(implicit f: Analytic[F]): F

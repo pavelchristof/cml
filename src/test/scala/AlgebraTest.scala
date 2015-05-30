@@ -1,3 +1,4 @@
+import cml.algebra.{Field, Additive1, Additive}
 import cml.algebra.traits._
 import cml.algebra.Instances._
 import cml.algebra
@@ -8,9 +9,9 @@ object AlgebraTest extends App {
   def fun2[V[_], F](x: V[F])(implicit s: Additive1[V], f: Field[F]): V[F] = s.add(x, x)
   println(fun[Double](2))
 
-  implicit val vec2 = algebra.Vector(Nat(2))
-  implicit val vec3 = algebra.Vector(Nat(3))
-  val vec2b = algebra.Vector(Nat(2))
+  implicit val vec2 = algebra.Vec(Nat(2))
+  implicit val vec3 = algebra.Vec(Nat(3))
+  val vec2b = algebra.Vec(Nat(2))
 
   println(vec2.dimFin)
   println(vec3.dimFin)

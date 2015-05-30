@@ -1,6 +1,7 @@
 package cml.models
 
 import cml._
+import cml.algebra.Analytic
 import cml.algebra.traits._
 
 case class BilinearMap[In1[_], In2[_], Out[_]] (

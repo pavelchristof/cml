@@ -1,6 +1,7 @@
 package cml.optimization
 
 import cml._
+import cml.algebra.{Subspace, Floating}
 import cml.algebra.traits._
 
 /**

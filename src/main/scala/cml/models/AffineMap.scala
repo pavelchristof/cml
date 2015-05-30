@@ -1,7 +1,7 @@
 package cml.models
 
 import cml.Model
-import cml.algebra.{Scalar, Compose, Product}
+import cml.algebra.{Analytic, Scalar, Compose, Product}
 import cml.algebra.traits._
 
 case class AffineMap[In[_], Out[_]] (

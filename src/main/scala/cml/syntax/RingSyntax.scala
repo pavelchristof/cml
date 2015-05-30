@@ -1,6 +1,6 @@
 package cml.syntax
 
-import cml.algebra.traits._
+import cml.algebra._
 import scalaz.syntax.Ops
 
 final class RingOps[F] private[syntax](val self: F)(implicit f: Ring[F]) extends Ops[F] {

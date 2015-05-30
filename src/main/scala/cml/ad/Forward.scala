@@ -1,5 +1,6 @@
 package cml.ad
 
+import cml.algebra.{Field, Analytic}
 import cml.algebra.traits._
 
 object Forward extends Engine {

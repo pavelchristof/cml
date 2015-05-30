@@ -1,4 +1,4 @@
-package cml.algebra.traits
+package cml.algebra
 
 trait ZeroApplicative[V[_]] extends ZeroApply[V] {
   /**

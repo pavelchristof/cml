@@ -1,5 +1,6 @@
 package cml.ad
 
+import cml.algebra.{Field, Analytic, Additive}
 import cml.algebra.traits._
 import scala.collection.mutable.Builder
 

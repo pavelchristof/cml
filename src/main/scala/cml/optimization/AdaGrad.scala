@@ -1,5 +1,6 @@
 package cml.optimization
 
+import cml.algebra.Floating
 import cml.algebra.traits._
 
 object AdaGrad extends GradTrans {

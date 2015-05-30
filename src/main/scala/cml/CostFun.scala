@@ -1,6 +1,6 @@
 package cml
 
-import cml.algebra.traits._
+import cml.algebra._
 import scala.collection.parallel.ParSeq
 
 abstract class CostFun[In[_], Out[_]] extends Serializable {

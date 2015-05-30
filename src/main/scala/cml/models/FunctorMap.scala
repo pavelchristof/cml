@@ -1,7 +1,7 @@
 package cml.models
 
 import cml._
-import cml.algebra.Compose
+import cml.algebra.{Analytic, Compose}
 import cml.algebra.traits._
 
 import scalaz.Functor

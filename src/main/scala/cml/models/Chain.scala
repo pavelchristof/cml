@@ -1,5 +1,6 @@
 package cml.models
 
+import cml.algebra.Analytic
 import cml.algebra.traits._
 import cml.{Model, algebra}
 

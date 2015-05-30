@@ -1,4 +1,4 @@
-package cml.algebra.traits
+package cml.algebra
 
 /**
  * An endofunctor on the category of pointed types.

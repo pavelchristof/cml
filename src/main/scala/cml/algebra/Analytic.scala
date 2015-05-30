@@ -1,4 +1,4 @@
-package cml.algebra.traits
+package cml.algebra
 
 import cml.syntax.AnalyticSyntax
 

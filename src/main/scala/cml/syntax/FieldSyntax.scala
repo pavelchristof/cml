@@ -1,6 +1,6 @@
 package cml.syntax
 
-import cml.algebra.traits._
+import cml.algebra._
 import scalaz.syntax.Ops
 
 final class FieldOps[F] private[syntax](val self: F)(implicit f: Field[F]) extends Ops[F] {

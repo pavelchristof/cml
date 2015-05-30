@@ -1,5 +1,6 @@
 package cml.models
 
+import cml.algebra.{Normed, Analytic}
 import cml.{Model, algebra}
 import cml.algebra.traits._
 import shapeless.Nat
@@ -7,7 +8,7 @@ import shapeless.Nat
 case class Softmax[V[_]] (
   implicit vs: Normed[V]
 ) extends Model[V, V] {
-  val vec = algebra.Vector(Nat(0))
+  val vec = algebra.Vec(Nat(0))
   override implicit val space = vec
   override type Type[A] = vec.Type[A]
 

@@ -1,4 +1,9 @@
-package cml.algebra.traits
+package cml.algebra
+
+import shapeless.Nat
+import shapeless.ops.nat.ToInt
+
+import scala.reflect.ClassTag
 
 /**
  * A functor that maps field F to the cartesian space F&#94;n for some natural number n.
@@ -73,10 +78,16 @@ object Cartesian {
     override def apply2[A, B, C](x: A, y: B)(h: (A, B) => C)
         (implicit a: Zero[A], b: Zero[B], c: Zero[C]): C = h(x, y)
 
+    override def applyC2[A, B, C](x: A, y: B)(h: (A, B) => C)
+        (implicit a: Zero[A], b: Zero[B], c: Zero[C]): C = h(x, y)
+
     override def zip[A, B](x: A, y: B)
         (implicit a: Zero[A], b: Zero[B]): (A, B) = (x, y)
 
     override def ap[A, B](x: A)(h: (A) => B)
+        (implicit a: Zero[A], b: Zero[B]): B = h(x)
+
+    override def apC[A, B](x: A)(h: (A) => B)
         (implicit a: Zero[A], b: Zero[B]): B = h(x)
 
     override def point[A](x: A)(implicit a: Zero[A]): A = x
@@ -87,4 +98,51 @@ object Cartesian {
 
     override def sum[A](v: A)(implicit a: Additive[A]): A = v
   }
+
+  class VecImpl[S <: Nat](implicit size: ToInt[S])
+    extends Cartesian[({type T[a] = Vec[S, a]})#T] {
+    type Key = Int
+
+    override val dim: Int = size()
+
+    override def zero[A](implicit a: Zero[A]): Vec[S, A] =
+      Vec(Array.fill(dim)(a.zero))
+
+    override def map[A, B](v: Vec[S, A])(h: (A) => B)(implicit a: Zero[A], b: Zero[B]): Vec[S, B] =
+      Vec(Array.tabulate(dim)(i => h(v.get(i))))
+
+    override def apply2[A, B, C](x: Vec[S, A], y: Vec[S, B])(h: (A, B) => C)
+        (implicit a: Zero[A], b: Zero[B], c: Zero[C]): Vec[S, C] =
+      Vec(Array.tabulate(dim)(i => h(x.get(i), y.get(i))))
+
+    override def applyC2[A, B, C](x: Vec[S, A], y: Vec[S, B])(h: (A, B) => C)
+        (implicit a: Zero[A], b: Zero[B], c: Zero[C]): Vec[S, C] =
+      Vec(Array.tabulate(dim)(i => h(x.get(i), y.get(i))))
+
+    override def zip[A, B](x: Vec[S, A], y: Vec[S, B])
+        (implicit a: Zero[A], b: Zero[B]): Vec[S, (A, B)] =
+      Vec(Array.tabulate(dim)(i => (x.get(i), y.get(i))))
+
+    override def ap[A, B](x: Vec[S, A])(h: Vec[S, (A) => B])
+        (implicit a: Zero[A], b: Zero[B]): Vec[S, B] =
+      Vec(Array.tabulate(dim)(i => h.get(i)(x.get(i))))
+
+    override def apC[A, B](x: Vec[S, A])(h: Vec[S, (A) => B])
+        (implicit a: Zero[A], b: Zero[B]): Vec[S, B] =
+      Vec(Array.tabulate(dim)(i => h.get(i)(x.get(i))))
+
+    override def point[A](x: A)(implicit a: Zero[A]): Vec[S, A] =
+      Vec(Array.fill(dim)(x))
+
+    override def tabulate[A](v: (Int) => A)(implicit a: Zero[A]): Vec[S, A] =
+      Vec(Array.tabulate(dim)(v))
+
+    override def index[A](v: Vec[S, A])(k: Int)(implicit a: Zero[A]): A =
+      v.get(k)
+
+    override def sum[A](v: Vec[S, A])(implicit a: Additive[A]): A =
+      v.get.fold(a.zero)(a.add)
+  }
+
+  implicit def vec[S <: Nat](implicit toInt: ToInt[S]) = new VecImpl[S]
 }

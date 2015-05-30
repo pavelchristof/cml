@@ -1,4 +1,5 @@
 import cml._
+import cml.algebra.{AnalyticMap, Analytic}
 import cml.algebra.Instances._
 import cml.algebra.traits._
 import cml.models._
@@ -11,7 +12,7 @@ import scalaz._
 object ModelTest extends App {
   implicit val diffEngine = ad.Backward
   implicit val vecIn = algebra.Scalar
-  implicit val vecHidden = algebra.Vector(Nat(1))
+  implicit val vecHidden = algebra.Vec(Nat(1))
   val vecOut = algebra.Scalar
   implicit val vecTree = algebra.Compose[Tree, vecIn.Type]
 

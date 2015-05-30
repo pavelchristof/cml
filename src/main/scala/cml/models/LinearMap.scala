@@ -1,8 +1,7 @@
 package cml.models
 
 import cml.Model
-import cml.algebra.Compose
-import cml.algebra.traits._
+import cml.algebra._
 
 case class LinearMap[In[_], Out[_]] (
   implicit inLC: Concrete[In],

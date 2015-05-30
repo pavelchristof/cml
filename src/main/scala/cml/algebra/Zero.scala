@@ -1,4 +1,4 @@
-package cml.algebra.traits
+package cml.algebra
 
 import scala.reflect.ClassTag
 

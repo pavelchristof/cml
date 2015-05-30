@@ -1,4 +1,4 @@
-package cml.algebra.traits
+package cml.algebra
 
 /**
  * A functor that maps commutative groups to commutative groups.

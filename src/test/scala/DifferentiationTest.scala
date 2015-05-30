@@ -1,4 +1,5 @@
 import cml.ad
+import cml.algebra.Analytic
 import cml.algebra.traits._
 import cml.algebra.Instances._
 import org.scalacheck.Properties

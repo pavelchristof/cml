@@ -1,6 +1,6 @@
 package cml
 
-import cml.algebra.traits._
+import cml.algebra._
 
 trait Optimizer[In[_], Out[_]] {
   val model: Model[In, Out]

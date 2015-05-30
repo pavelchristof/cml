@@ -1,4 +1,4 @@
-package cml.algebra.traits
+package cml.algebra
 
 trait Representable[F[_]] extends Linear[F] {
   type Key

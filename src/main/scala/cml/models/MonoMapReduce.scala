@@ -1,6 +1,7 @@
 package cml.models
 
 import cml._
+import cml.algebra.Analytic
 import cml.algebra.traits._
 
 import scalaz.Const

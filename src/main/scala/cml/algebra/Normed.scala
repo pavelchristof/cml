@@ -1,6 +1,4 @@
-package cml.algebra.traits
-
-import cml.algebra.{Vector, RuntimeNat}
+package cml.algebra
 
 import scalaz.Scalaz._
 
@@ -76,16 +74,16 @@ object Normed {
     class MapSubspace[K] (keyMap: Map[K, Int]) extends Subspace[({type T[A] = Map[K, A]})#T] {
       val sizeNat = RuntimeNat(keyMap.size)
 
-      override type Type[A] = Vector[sizeNat.Type, A]
+      override type Type[A] = Vec[sizeNat.Type, A]
 
-      override implicit val space: Cartesian[Type] = Vector(sizeNat())
+      override implicit val space: Cartesian[Type] = Cartesian.vec(sizeNat())
 
       override def project[A](v: Map[K, A])(implicit a: Zero[A]): Type[A] = {
         val arr = new Array[A](keyMap.size)
         for ((k, i) <- keyMap) {
           arr(i) = v.getOrElse(k, a.zero)
         }
-        Vector(arr)
+        Vec(arr)
       }
 
       override def inject[A](u: Type[A])(implicit a: Zero[A]): Map[K, A] = new Map[K, A] {

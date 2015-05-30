@@ -1,8 +1,8 @@
 package cml.models
 
 import cml.Model
-import cml.algebra.Compose
-import cml.algebra.traits.{Additive, Analytic}
+import cml.algebra.{Analytic, Compose}
+import cml.algebra.traits.Analytic
 
 import scalaz.{Foldable1, Semigroup}
 

@@ -1,5 +1,6 @@
 package cml.models
 
+import cml.algebra.{AnalyticMap, Analytic}
 import cml.{Model, algebra}
 import cml.algebra.traits._
 import shapeless.Nat
@@ -9,7 +10,7 @@ case class Pointwise[V[_]] (
 ) (
   implicit c: Concrete[V]
 ) extends Model[V, V] {
-  val vec = algebra.Vector(Nat(0))
+  val vec = algebra.Vec(Nat(0))
   override type Type[A] = vec.Type[A]
 
   override implicit val space = vec
