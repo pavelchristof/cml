@@ -35,8 +35,8 @@ object Subspace {
     override def project[A](v: (F[A], G[A]))(implicit a: Zero[A]): Type[A] =
       (f.project(v._1), g.project(v._2))
 
-    override implicit val space: Representable[({type T[A] = (f.Type[A], g.Type[A])})#T] =
-      Representable.product[f.Type, g.Type](f.space, g.space)
+    override implicit val space: Cartesian[({type T[A] = (f.Type[A], g.Type[A])})#T] =
+      Cartesian.product[f.Type, g.Type](f.space, g.space)
   }
 
   class Compose[F[_], G[_]] (val f: Subspace[F], val g: Subspace[G])
@@ -44,6 +44,7 @@ object Subspace {
     extends Subspace[({type T[A] = F[G[A]]})#T] {
     override type Type[A] = f.Type[g.Type[A]]
 
+    implicit val fss = f.space
     implicit val gss = g.space
 
     override def inject[A](u: Type[A])(implicit a: Zero[A]): F[G[A]] =
@@ -51,6 +52,9 @@ object Subspace {
 
     override def project[A](v: F[G[A]])(implicit a: Zero[A]): Type[A] =
       f.space.map(f.project(v))(g.project(_))
+
+    override implicit val space: Cartesian[({type T[A] = f.Type[g.Type[A]]})#T] =
+      Cartesian.compose[f.Type, g.Type]
   }
 
   class WholeSpace[F[_]] (implicit f: Cartesian[F]) extends Subspace[F] {
