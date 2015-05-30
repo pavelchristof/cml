@@ -30,11 +30,13 @@ case class SelectBest[In[_], Out[_]] (
       .sortBy(_._1)
       .take(count)
 
+    val subspace = model.space.restrict[A](score(_))(model.space.zero)
     while (p.size < count) {
-      val inst: model.Type[A] = model.fill(default)
+      val inst: model.Type[A] = subspace.inject(subspace.concrete.point(default))
+      println(inst)
       val cost: A = score(inst)
       if (!fl.isNaN(cost)) {
-        p +:= (cost, model.fill(default))
+        p +:= (cost, inst)
       }
     }
 

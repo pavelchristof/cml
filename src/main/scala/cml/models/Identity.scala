@@ -12,7 +12,4 @@ case class Identity[V[_]] () extends Model[V, V] {
 
   override def apply[F](inst: Type[F])(input: V[F])(implicit f: Analytic[F]): V[F] =
     input
-
-  override def fill[F](x: => F)(implicit a: Additive[F]): Type[F] =
-    vec.point(x)
 }

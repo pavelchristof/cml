@@ -16,7 +16,4 @@ case class LinAffinMap[In1[_], In2[_], Out[_]] (
 
   override def apply[F](inst: Type[F])(input: (In1[F], In2[F]))(implicit an: Analytic[F]): Out[F] =
     affineMap(linAffinMap(inst)(input._1))(input._2)
-
-  override def fill[F](x: => F)(implicit a: Additive[F]): Type[F] =
-    linAffinMap.fill(x)
 }

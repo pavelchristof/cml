@@ -23,6 +23,4 @@ case class MonoMapReduce[F, E, V[_]] (
     monoFoldable.foldMap1[V[A]](input.getConst)(
       x => map[A](inst._1)(Const(x)),
       reduce[A](inst._2)(_, _))
-
-  def fill[A](x: => A)(implicit a: Additive[A]): Type[A] = (map.fill(x), reduce.fill(x))
 }

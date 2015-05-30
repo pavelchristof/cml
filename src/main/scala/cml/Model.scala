@@ -30,13 +30,6 @@ trait Model[In[_], Out[_]] {
   def apply[A](inst: Type[A])(input: In[A])(implicit field: Analytic[A]): Out[A]
 
   /**
-   * Creates a new model instance and fills it with some value.
-   * @param x Value the model parameters will be initialized with.
-   * @tparam A The number type.
-   */
-  def fill[A](x: => A)(implicit a: Additive[A]): Type[A]
-
-  /**
    * Scores the data set.
    */
   def score[A](inst: Type[A])(data: Seq[(In[A], Out[A])])(implicit an: Analytic[A]): Seq[Sample[In[A], Out[A]]] =

@@ -19,6 +19,4 @@ case class Reduce[F[_], R[_]] (
     foldable.fold1(input)(new Semigroup[R[A]] {
       override def append(f1: R[A], f2: => R[A]): R[A] = m(inst)((f1, f2))
     })
-
-  def fill[A](x: => A)(implicit a: Additive[A]): Type[A] = m.fill(x)
 }

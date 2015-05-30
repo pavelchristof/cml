@@ -16,7 +16,4 @@ case class Pointwise[V[_]] (
 
   def apply[F](inst: Type[F])(input: V[F])(implicit field: Analytic[F]): V[F] =
     c.map(input)(f(_))
-
-  override def fill[F](x: => F)(implicit a: Additive[F]): Type[F] =
-    vec.point(x)
 }

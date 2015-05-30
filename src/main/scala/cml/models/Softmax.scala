@@ -16,7 +16,4 @@ case class Softmax[V[_]] (
     val total = lc.sum(expd)
     lc.mapLC(expd)(field.div(_, total))
   }
-
-  override def fill[A](x: => A)(implicit a: Additive[A]): Type[A] =
-    space.point(x)
 }

@@ -18,7 +18,4 @@ case class FunctorMap[F[_], G[_], H[_]](
   override def apply[A](inst: Type[A])(input: Compose[F, G]#Type[A])
     (implicit field: Analytic[A]): Compose[F, H]#Type[A] =
     functor.map(input)(map(inst)(_))
-
-  override def fill[A](x: => A)(implicit a: Additive[A]): Type[A] =
-    map.fill[A](x)
 }

@@ -18,7 +18,4 @@ case class AffineMap[In[_], Out[_]] (
     import f.analyticSyntax._
     outLC.map(inst)(v => inLC.dot(input, v._1) + v._2)
   }
-
-  override def fill[F](x: => F)(implicit a: Additive[F]): Type[F] =
-    outLC.point((inLC.point(x), x))
 }
