@@ -60,4 +60,31 @@ object Cartesian {
   }
 
   implicit def compose[F[_], G[_]](implicit f: Cartesian[F], g: Cartesian[G]) = new Compose[F, G]
+  
+  implicit object Scalar extends Cartesian[({type T[A] = A})#T] {
+    type Key = Unit
+
+    override val dim: Int = 1
+
+    override def zero[A](implicit a: Zero[A]): A = a.zero
+
+    override def map[A, B](v: A)(h: (A) => B)(implicit a: Zero[A], b: Zero[B]): B = h(v)
+
+    override def apply2[A, B, C](x: A, y: B)(h: (A, B) => C)
+        (implicit a: Zero[A], b: Zero[B], c: Zero[C]): C = h(x, y)
+
+    override def zip[A, B](x: A, y: B)
+        (implicit a: Zero[A], b: Zero[B]): (A, B) = (x, y)
+
+    override def ap[A, B](x: A)(h: (A) => B)
+        (implicit a: Zero[A], b: Zero[B]): B = h(x)
+
+    override def point[A](x: A)(implicit a: Zero[A]): A = x
+
+    override def tabulate[A](v: (Unit) => A)(implicit a: Zero[A]): A = v()
+
+    override def index[A](v: A)(k: Unit)(implicit a: Zero[A]): A = v
+
+    override def sum[A](v: A)(implicit a: Additive[A]): A = v
+  }
 }

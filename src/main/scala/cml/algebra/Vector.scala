@@ -1,13 +1,9 @@
 package cml.algebra
 
-import cml.Enumerate
 import cml.algebra.traits._
 import shapeless.Nat
 import shapeless.ops.nat.ToInt
-import scala.collection.mutable
 import scala.reflect.ClassTag
-import scalaz.std.AllInstances._
-import scalaz.{Monoid, Traverse, Applicative, Zip}
 
 case class Vector[+S <: Nat, A] (
   get: Array[A]
@@ -16,7 +12,7 @@ case class Vector[+S <: Nat, A] (
 }
 
 class VectorImpl[S <: Nat](implicit size: ToInt[S])
-  extends Concrete[({type `T[S]`[a] = Vector[S, a]})#`T[S]`]
+  extends Cartesian[({type T[a] = Vector[S, a]})#T]
   with Serializable {
 
   type Type[a] = Vector[S, a]
@@ -31,85 +27,39 @@ class VectorImpl[S <: Nat](implicit size: ToInt[S])
       None
     }
 
-  /**
-   * A countable or finite set indexing the basis.
-   */
-  type Index = Int
+  type Key = Int
 
-  /**
-   * The index must be recursively enumerable.
-   */
-  override def enumerateIndex: Enumerate[Int] = Enumerate.natInt(size())
+  override val dim: Int = size()
 
-  /**
-   * The dimension of this vector space.
-   */
-  override val dimFin: BigInt = size()
+  override def zero[A](implicit a: Zero[A]): Vector[S, A] =
+    Vector(Array.fill(dim)(a.zero))
 
-  /**
-   * Find the coefficient of the i-th basis vector.
-   */
-  override def index[F](v: Vector[S, F])(i: Int): F =
-    v.get(i)
+  override def map[A, B](v: Vector[S, A])(h: (A) => B)(implicit a: Zero[A], b: Zero[B]): Vector[S, B] =
+    Vector(Array.tabulate(dim)(i => h(v.get(i))))
 
-  /**
-   * Construct a vector using given coefficients for the orthonormal basis.
-   */
-  override def tabulate[F](f: (Int) => F)(implicit additive: Additive[F]): Vector[S, F] =
-    Vector(Array.tabulate(size())(f(_)))
+  override def apply2[A, B, C](x: Vector[S, A], y: Vector[S, B])(h: (A, B) => C)
+      (implicit a: Zero[A], b: Zero[B], c: Zero[C]): Vector[S, C] =
+    Vector(Array.tabulate(dim)(i => h(x.get(i), y.get(i))))
 
-  override def map[A, B](fa: Vector[S, A])(f: (A) => B)(implicit a: Additive[A], b: Additive[B]): Vector[S, B] = {
-    val n = size()
-    val arr = new Array[B](n)
-    var i = 0
+  override def zip[A, B](x: Vector[S, A], y: Vector[S, B])
+      (implicit a: Zero[A], b: Zero[B]): Vector[S, (A, B)] =
+    Vector(Array.tabulate(dim)(i => (x.get(i), y.get(i))))
 
-    while (i < n) {
-      arr(i) = f(fa.get(i))
-      i += 1
-    }
+  override def ap[A, B](x: Vector[S, A])(h: Vector[S, (A) => B])
+      (implicit a: Zero[A], b: Zero[B]): Vector[S, B] =
+    Vector(Array.tabulate(dim)(i => h.get(i)(x.get(i))))
 
-    Vector(arr)
-  }
+  override def point[A](x: A)(implicit a: Zero[A]): Vector[S, A] =
+    Vector(Array.fill(dim)(x))
 
-  /**
-   * Applies a vector of functions to a vector, pointwise. It must hold for each function that f(0) = 0.
-   */
-  override def ap[A, B](x: Vector[S, A])(f: Vector[S, (A) => B])
-      (implicit a: Additive[A], b: Additive[B]): Vector[S, B] = {
-    val n = size()
-    val arr = new Array[B](n)
-    var i = 0
+  override def tabulate[A](v: (Int) => A)(implicit a: Zero[A]): Vector[S, A] =
+    Vector(Array.tabulate(dim)(v))
 
-    while (i < n) {
-      arr(i) = f.get(i)(x.get(i))
-      i += 1
-    }
+  override def index[A](v: Vector[S, A])(k: Int)(implicit a: Zero[A]): A =
+    v.get(k)
 
-    Vector(arr)
-  }
-
-  /**
-   * Applies a binary function pointwise. It must hold that f(0, 0) = 0.
-   */
-  override def apply2[A, B, C](x: Vector[S, A], y: Vector[S, B])(f: (A, B) => C)
-      (implicit a: Additive[A], b: Additive[B], c: Additive[C]): Vector[S, C] = {
-    val n = size()
-    val arr = new Array[C](n)
-    var i = 0
-
-    while (i < n) {
-      arr(i) = f(x.get(i), y.get(i))
-      i += 1
-    }
-
-    Vector(arr)
-  }
-
-  override def sum[F](v: Vector[S, F])(implicit f: Additive[F]): F
-    = v.get.fold(f.zero)(f.add(_, _))
-
-  override def point[A](a: => A)(implicit additive: Additive[A]): Vector[S, A] =
-    Vector(Array.fill(size())(a))
+  override def sum[A](v: Vector[S, A])(implicit a: Additive[A]): A =
+    v.get.fold(a.zero)(a.add)
 }
 
 trait RuntimeNat {
