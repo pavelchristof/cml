@@ -1,4 +1,4 @@
-import cml.{ad, _}
+import cml._
 import cml.algebra.Instances._
 import cml.algebra.traits._
 import cml.models._
@@ -31,13 +31,13 @@ object ModelTest extends App {
       - (e * (a + eps).log + (_1 - e) * (_1 - a + eps).log)
     }
 
-    override def regularization[V[_], A](inst: V[A])(implicit an: Analytic[A], space: LocallyConcrete[V]): A = {
+    override def regularization[V[_], A](inst: V[A])(implicit an: Analytic[A], space: Concrete[V]): A = {
       import an.analyticSyntax._
-      space.quadrance(inst) / fromInt(3000)
+      fromDouble(0.001) * space.quadrance(inst)
     }
   }
 
-  val data = Vector(
+  val data = Seq(
     (1d, 1d),
     (2d, 0d),
     (3d, 1d),
@@ -55,10 +55,15 @@ object ModelTest extends App {
     )
   )
 
-  val learned = optimizer[Double](Vector.empty, data, costFun, rng.nextDouble() * 2 - 1)
-      .minBy(_._1)
-      ._2
-      .asInstanceOf[model.Type[Double]]
+  val learned = optimizer[Double](
+      population = Vector(),
+      subspace = optimizer.model.space.restrict(Set.empty[optimizer.model.space.Index]),
+      data = data,
+      costFun = costFun,
+      noise = rng.nextDouble() * 2 - 1)
+    .minBy(_._1)
+    ._2
+    .asInstanceOf[model.Type[Double]]
 
   for (i <- Array(1d, 2d, 3d, 4d)) {
     println(model(learned)(i))

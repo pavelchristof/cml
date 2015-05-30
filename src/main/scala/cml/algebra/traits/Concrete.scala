@@ -1,11 +1,9 @@
 package cml.algebra.traits
 
-import scalaz.{Monoid, Foldable, Applicative}
-
 /**
  * Finitely dimensional vector spaces with a canonical normal basis.
  */
-trait Concrete[V[_]] extends LocallyConcrete[V] with Applicative[V] with Foldable[V] {
+trait Concrete[V[_]] extends Normed[V] {
   /**
    * The (finite) dimension of this vector space.
    */
@@ -25,7 +23,7 @@ trait Concrete[V[_]] extends LocallyConcrete[V] with Applicative[V] with Foldabl
   /**
    * Construct a vector from coefficients of the basis vectors.
    */
-  def tabulate[A](h: (Index) => A): V[A]
+  def tabulate[A](h: (Index) => A)(implicit additive: Additive[A]): V[A]
 
   /**
    * Find the coefficient of a basis vector.
@@ -46,13 +44,6 @@ trait Concrete[V[_]] extends LocallyConcrete[V] with Applicative[V] with Foldabl
   override def div[F](v: V[F], a: F)(implicit f: Field[F]): V[F] =
     map(v)(f.div(_, a))
 
-  override def sum[A](v: V[A])(implicit a: Additive[A]): A =
-    foldRight(v, a.zero)(a.add(_, _))
-  override def taxicab[A](v: V[A])(implicit a: Analytic[A]): A =
-    foldRight(v, a.zero){ case (x, y) => a.add(a.neg(x), y) }
-  override def dot[A](u: V[A], v: V[A])(implicit f: Field[A]): A =
-    sum(apply2(u, v)(f.mul))
-
   /**
    * Construct a vector from coefficients of the basis vectors.
    */
@@ -65,50 +56,8 @@ trait Concrete[V[_]] extends LocallyConcrete[V] with Applicative[V] with Foldabl
   final override def indexLC[A](v: V[A])(i: Index)(implicit a: Additive[A]): A =
     index(v)(i)
 
-  /**
-   * Maps the vector with a function f. It must hold that f(0) = 0.
-   */
-  final override def mapLC[A, B](x: V[A])(f: (A) => B)(implicit a: Additive[A], b: Additive[B]): V[B] =
-    map(x)(f)
-
-  /**
-   * Applies a vector of functions to a vector, pointwise. It must hold that f(0) = 0.
-   */
-  final override def apLC[A, B](x: V[A])(f: V[(A) => B])(implicit a: Additive[A], b: Additive[B]): V[B] =
-    ap(x)(f)
-
-  /**
-   * Applies a binary function pointwise. If must hold that f(0, 0) = 0.
-   */
-  final override def apply2LC[A, B, C](x: V[A], y: V[B])(f: (A, B) => C)
-      (implicit a: Additive[A], b: Additive[B], c: Additive[C]): V[C] =
-    apply2(x, y)(f)
-
-  /**
-   * Returns the concrete subspace containing v.
-   */
-  final override def restrict[A](v: V[A])(implicit field: Field[A]): Subspace[V] =
+  final override def restrict(keys: Set[Index]): Subspace[V] =
     Subspace.identity[V](this)
 
-  final override def restrict[A](h: V[A] => A)(v: V[A])(implicit a: Additive[A]): Subspace[V] =
-    Subspace.identity[V](this)
-
-  override def map[A, B](v: V[A])(f: (A) => B): V[B] = {
-    val coeff = index(v)_
-    tabulate(i => f(coeff(i)))
-  }
-
-  override def point[A](a: => A): V[A] = tabulate(_ => a)
-
-  override def ap[A, B](x: => V[A])(f: => V[(A) => B]): V[B] = {
-    val xi = index(x)_
-    val fi = index(f)_
-    tabulate(i => fi(i)(xi(i)))
-  }
-
-  override def foldMap[A, B](fa: V[A])(f: (A) => B)(implicit F: Monoid[B]): B =
-    enumerateIndex.enumerate.map(i => f(index(fa)(i))).fold(F.zero)(F.append(_, _))
-
-  override def foldRight[A, B](fa: V[A], z: => B)(f: (A, => B) => B): B =
-    enumerateIndex.enumerate.map(i => index(fa)(i)).foldRight(z)(f(_, _))
+  def point[A](a: => A)(implicit additive: Additive[A]): V[A] = tabulate(_ => a)
 }

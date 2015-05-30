@@ -16,6 +16,6 @@ case class AffineMap[In[_], Out[_]] (
 
   override def apply[F](inst: Type[F])(input: In[F])(implicit f: Analytic[F]): Out[F] = {
     import f.analyticSyntax._
-    outLC.map(inst)(v => inLC.dot(input, v._1) + v._2)
+    outLC.map(inst)(v => inLC.dot(input, v._1) + v._2)(biased.additive, f)
   }
 }

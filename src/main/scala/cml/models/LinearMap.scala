@@ -13,5 +13,5 @@ case class LinearMap[In[_], Out[_]] (
   override implicit val space = Compose[Out, In].concrete(outLC, inLC)
 
   override def apply[F](inst: Type[F])(input: In[F])(implicit f: Analytic[F]): Out[F] =
-    outLC.map(inst)(inLC.dot(input, _))
+    outLC.map(inst)(inLC.dot(input, _))(inLC.additive, f)
 }

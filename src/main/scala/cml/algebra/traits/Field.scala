@@ -26,5 +26,25 @@ trait Field[T] extends Ring[T] {
     }
   }
 
+  /**
+   * Adds one n times in O(log n) time.
+   */
+  def fromLong(n: Long): T = {
+    import fieldSyntax._
+    n match {
+      case 0 => zero
+      case 1 => one
+      case _ if n < 0 => -this.fromLong(-n)
+      case _ if n % 2 == 0 => {
+        val half = this.fromLong(n/2)
+        half + half
+      }
+      case _ => {
+        val nearlyHalf = this.fromLong(n/2)
+        nearlyHalf + nearlyHalf + one
+      }
+    }
+  }
+
   val fieldSyntax = new FieldSyntax[T] { def F = Field.this }
 }

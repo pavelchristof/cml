@@ -3,6 +3,7 @@ package cml.algebra
 import cml.Enumerate
 import cml.algebra.traits._
 
+import scala.reflect.ClassTag
 import scalaz.{Functor, Monoid}
 
 case class Product[F[_], G[_]] (implicit f_ : Concrete[F], g_ : Concrete[G])
@@ -55,19 +56,8 @@ object Product {
       (f.div(v._1, a), g.div(v._2, a))
   }
 
-  class ProductNormed[F[_], G[_]](implicit f: Normed[F], g: Normed[G])
-    extends ProductLinear[F, G]
-    with Normed[({type T[A] = (F[A], G[A])})#T] {
-    override def sum[A](v: (F[A], G[A]))(implicit a: Additive[A]): A =
-      a.add(f.sum(v._1), g.sum(v._2))
-    override def taxicab[A](v: (F[A], G[A]))(implicit a: Analytic[A]): A =
-      a.add(f.taxicab(v._1), g.taxicab(v._2))
-    override def dot[A](u: (F[A], G[A]), v: (F[A], G[A]))(implicit a: Field[A]): A =
-      a.add(f.dot(u._1, v._1), g.dot(u._2, v._2))
-  }
-
   class ProductLocallyConcrete[F[_], G[_]](implicit val f : LocallyConcrete[F], val g : LocallyConcrete[G])
-    extends ProductNormed[F, G]
+    extends ProductLinear[F, G]
     with LocallyConcrete[({type T[A] = (F[A], G[A])})#T] {
     /**
      * A countable or finite set indexing the basis.
@@ -78,12 +68,6 @@ object Product {
      * The index must be recursively enumerable.
      */
     override def enumerateIndex: Enumerate[Index] = Enumerate.sum(f.enumerateIndex, g.enumerateIndex)
-
-    /**
-     * The (finite) dimension of a vector, equal to the dimension of the restriction to v.
-     */
-    override def dim[A](v: (F[A], G[A]))(implicit field: Field[A]): BigInt =
-      f.dim(v._1) + g.dim(v._2)
 
     /**
      * The (normal) basis for this vector space.
@@ -115,35 +99,34 @@ object Product {
     /**
      * Maps the vector with a function f. It must hold that f(0) = 0.
      */
-    override def mapLC[A, B](x: (F[A], G[A]))(h: (A) => B)(implicit a: Additive[A], b: Additive[B]): (F[B], G[B]) =
-      (f.mapLC(x._1)(h), g.mapLC(x._2)(h))
+    override def map[A, B](x: (F[A], G[A]))(h: (A) => B)(implicit a: Additive[A], b: Additive[B]): (F[B], G[B]) =
+      (f.map(x._1)(h), g.map(x._2)(h))
 
     /**
      * Applies a vector of functions to a vector, pointwise. It must hold that f(0) = 0.
      */
-    override def apLC[A, B](x: (F[A], G[A]))(h: (F[A => B], G[A => B]))(implicit a: Additive[A], b: Additive[B]): (F[B], G[B]) =
-      (f.apLC(x._1)(h._1), g.apLC(x._2)(h._2))
+    override def ap[A, B](x: (F[A], G[A]))(h: (F[A => B], G[A => B]))(implicit a: Additive[A], b: Additive[B]): (F[B], G[B]) =
+      (f.ap(x._1)(h._1), g.ap(x._2)(h._2))
 
     /**
      * Applies a binary function pointwise. If must hold that f(0, 0) = 0.
      */
-    override def apply2LC[A, B, C](x: (F[A], G[A]), y: (F[B], G[B]))(h: (A, B) => C)
+    override def apply2[A, B, C](x: (F[A], G[A]), y: (F[B], G[B]))(h: (A, B) => C)
         (implicit a: Additive[A], b: Additive[B], c: Additive[C]): (F[C], G[C]) =
-      (f.apply2LC(x._1, y._1)(h), g.apply2LC(x._2, y._2)(h))
+      (f.apply2(x._1, y._1)(h), g.apply2(x._2, y._2)(h))
 
-    /**
-     * Returns the concrete subspace containing v.
-     */
-    override def restrict[A](v: (F[A], G[A]))(implicit field: Field[A]): Subspace[({type T[A] = (F[A], G[A])})#T] =
-      ProductSubspace(f.restrict(v._1), g.restrict(v._2))
-
-    override def restrict[A](h: ((F[A], G[A])) => A)(v: (F[A], G[A]))
-        (implicit a: Additive[A]): Subspace[({type T[A] = (F[A], G[A])})#T] = {
-      val x = f.restrict((u: F[A]) => h((u, g.zero)))(v._1)
-      val y = g.restrict((u: G[A]) => h((f.zero, u)))(v._2)
-
-      ProductSubspace(x, y)
+    override def restrict(keys: Set[Index]): Subspace[({type T[A] = (F[A], G[A])})#T] = {
+      val fKeys = keys.flatMap(_.left.toSeq)
+      val gKeys = keys.flatMap(_.right.toSeq)
+      ProductSubspace(f.restrict(fKeys), g.restrict(gKeys))
     }
+  }
+
+  class ProductNormed[F[_], G[_]](implicit f: Normed[F], g: Normed[G])
+    extends ProductLocallyConcrete[F, G]
+    with Normed[({type T[A] = (F[A], G[A])})#T] {
+    override def sum[A](v: (F[A], G[A]))(implicit a: Additive[A]): A =
+      a.add(f.sum(v._1), g.sum(v._2))
   }
 
   case class ProductSubspace[F[_], G[_]](
@@ -162,7 +145,7 @@ object Product {
   }
 
   class ProductConcrete[F[_], G[_]](implicit override val f : Concrete[F], override val g : Concrete[G])
-    extends ProductLocallyConcrete[F, G]
+    extends ProductNormed[F, G]
     with Concrete[({type T[A] = (F[A], G[A])})#T] {
     /**
      * The (finite) dimension of this vector space.
@@ -172,7 +155,7 @@ object Product {
     /**
      * Construct a vector from coefficients of the basis vectors.
      */
-    override def tabulate[A](h: (Index) => A): (F[A], G[A]) =
+    override def tabulate[A](h: (Index) => A)(implicit additive: Additive[A]): (F[A], G[A]) =
       (f.tabulate(i => h(Left(i))), g.tabulate(i => h(Right(i))))
 
     /**
@@ -184,20 +167,8 @@ object Product {
         case Right(j) => g.index(v._2)(j)
       }
 
-    override def map[A, B](v: (F[A], G[A]))(h: (A) => B): (F[B], G[B]) =
-      (f.map(v._1)(h), g.map(v._2)(h))
-
-    override def point[A](a: => A): (F[A], G[A]) =
+    override def point[A](a: => A)(implicit additive: Additive[A]): (F[A], G[A]) =
       (f.point(a), g.point(a))
-
-    override def ap[A, B](x: => (F[A], G[A]))(h: => (F[(A) => B], G[(A) => B])): (F[B], G[B]) =
-      (f.ap(x._1)(h._1), g.ap(x._2)(h._2))
-
-    override def foldMap[A, B](v: (F[A], G[A]))(op: (A) => B)(implicit m: Monoid[B]): B =
-      m.append(f.foldMap(v._1)(op), g.foldMap(v._2)(op))
-
-    override def foldRight[A, B](v: (F[A], G[A]), z: => B)(op: (A, => B) => B): B =
-      f.foldRight(v._1, g.foldRight(v._2, z)(op))(op)
   }
 
   implicit def additive[F, G](implicit f: Additive[F], g: Additive[G]): Additive[(F, G)] = new ProductAdditive[F, G]()

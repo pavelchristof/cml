@@ -94,8 +94,6 @@ object Backward extends Engine {
       Aug(newCell(binary(x._1, y._1, f.inv(y._2), -x._2 / y._2.square)), x._2 / y._2)
 
     override def fromInt(n: Int): Aug[F] = Aug(None, f.fromInt(n))
-
-    override def runtimeClass: Class[AugField[F]] = classOf[AugField[F]]
   }
 
   private class AugAnalytic[F] (
@@ -160,10 +158,7 @@ object Backward extends Engine {
   private def backpropagate[F](out: Int, ctx: Context[F])(implicit f: Field[F]): Array[F] = {
     import f.fieldSyntax._
     val tape = ctx.tape.result()
-    val arr = new Array[F](ctx.size)
-    for (i <- 0 until ctx.size) {
-      arr(i) = _0
-    }
+    val arr = Array.fill[F](ctx.size)(_0)
     arr(out) = _1
     for (i <- (ctx.size - 1).to(0, -1)) {
       tape(i) match {
@@ -201,16 +196,16 @@ object Backward extends Engine {
     }
   }
 
-  private def makeInput[F, V[_]](v: V[F])(implicit space: Concrete[V]): V[Aug[F]] = {
+  private def makeInput[F, V[_]](v: V[F], ctx: Context[F])(implicit space: Concrete[V], f: Field[F]): V[Aug[F]] = {
     var i = 0
     space.tabulate(index => {
       val r = Aug(Some(i), space.index(v)(index))
       i += 1
       r
-    })
+    })(field[F](f, ctx))
   }
 
-  private def makeGrad[F, V[_]](arr: Array[F])(implicit space: Concrete[V]): V[F] = {
+  private def makeGrad[F, V[_]](arr: Array[F])(implicit space: Concrete[V], a: Additive[F]): V[F] = {
     var i = 0
     space.tabulate(_ => {
       val r = arr(i)
@@ -232,7 +227,7 @@ object Backward extends Engine {
   override def gradWithValue[F, V[_]](f: (V[Aug[F]], Context[F]) => Aug[F])
       (implicit field: Field[F], space: Concrete[V]): (V[F]) => (F, V[F]) = (v: V[F]) => {
     val ctx = newContextV[F, V]
-    val res = f(makeInput(v), ctx)
+    val res = f(makeInput(v, ctx), ctx)
     res._1 match {
       case Some(j) => {
         val arr = backpropagate(j, ctx)
@@ -240,34 +235,5 @@ object Backward extends Engine {
       }
       case None => (res._2, space.zero)
     }
-  }
-
-  /**
-   * Computes the gradient of a function taking a vector as the argument.
-   */
-  override def gradLC[F, V[_]](f: (V[Aug[F]], Context[F]) => Aug[F])
-      (implicit an: Analytic[F], space: LocallyConcrete[V]): (V[F]) => V[F] = v => {
-    implicit val additive: Additive[Aug[F]] = field(an, null)
-    val subspace = space.restrict[Aug[F]]((x: V[Aug[F]]) => f(x, null))(space.mapLC(v)(constant(_)))
-    import subspace.concrete
-    def fr(u: subspace.Type[Aug[F]], ctx: Context[F]): Aug[F] =
-      f(subspace.inject(u)(analytic(an, ctx)), ctx)
-    val gradr = grad[F, subspace.Type](fr)
-    subspace.inject(gradr(subspace.project(v)))
-  }
-
-  /**
-   * Computes the value and gradient of a function taking a vector as the argument.
-   */
-  override def gradWithValueLC[F, V[_]](f: (V[Aug[F]], Context[F]) => Aug[F])
-      (implicit an: Analytic[F], space: LocallyConcrete[V]): (V[F]) => (F, V[F]) = v => {
-    implicit val additive: Additive[Aug[F]] = field(an, null)
-    val subspace = space.restrict[Aug[F]]((x: V[Aug[F]]) => f(x, null))(space.mapLC(v)(constant(_)))
-    import subspace.concrete
-    def fr(u: subspace.Type[Aug[F]], ctx: Context[F]): Aug[F] =
-      f(subspace.inject(u)(analytic(an, ctx)), ctx)
-    val gradr = gradWithValue[F, subspace.Type](fr)
-    val r = gradr(subspace.project(v))
-    (r._1, subspace.inject(r._2))
   }
 }

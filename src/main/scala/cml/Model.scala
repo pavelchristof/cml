@@ -2,6 +2,8 @@ package cml
 
 import cml.algebra.traits._
 
+import scala.collection.parallel.ParSeq
+
 /**
  * Machine learning models expressible as a differentiable function, mapping some input to some output.
  *
@@ -30,9 +32,19 @@ trait Model[In[_], Out[_]] {
   def apply[A](inst: Type[A])(input: In[A])(implicit field: Analytic[A]): Out[A]
 
   /**
-   * Scores the data set.
+   * Applies the model to the data set.
    */
-  def score[A](inst: Type[A])(data: Seq[(In[A], Out[A])])(implicit an: Analytic[A]): Seq[Sample[In[A], Out[A]]] =
+  def applySeq[A](inst: Type[A])(data: Seq[(In[A], Out[A])])(implicit an: Analytic[A]): Seq[Sample[In[A], Out[A]]] =
+    data.map{ case (in, out) => Sample(
+      input = in,
+      expected = out,
+      actual = apply(inst)(in)
+    )}
+
+  /**
+   * Applies the model to the data set.
+   */
+  def applyParSeq[A](inst: Type[A])(data: ParSeq[(In[A], Out[A])])(implicit an: Analytic[A]): ParSeq[Sample[In[A], Out[A]]] =
     data.map{ case (in, out) => Sample(
       input = in,
       expected = out,

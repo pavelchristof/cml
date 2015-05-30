@@ -7,8 +7,9 @@ trait Optimizer[In[_], Out[_]] {
   def apply[A](
     population: Vector[model.Type[A]],
     data: Seq[(In[A], Out[A])],
+    subspace: Subspace[model.Type],
     costFun: CostFun[In, Out],
-    default: => A
+    noise: => A
   )(implicit
     fl: Floating[A],
     cmp: Ordering[A],

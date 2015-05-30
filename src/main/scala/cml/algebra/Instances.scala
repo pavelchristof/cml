@@ -23,6 +23,7 @@ object Instances {
     override def mul(x: Float, y: Float): Float = x * y
     override val one: Float = 1
     override def fromInt(n: Int): Float = n
+    override def fromLong(n: Long): Float = n
 
     override def div(x: Float, y: Float): Float = x / y
     override def inv(x: Float): Float = 1 / x
@@ -60,6 +61,7 @@ object Instances {
     override def mul(x: Double, y: Double): Double = x * y
     override val one: Double = 1
     override def fromInt(n: Int): Double = n
+    override def fromLong(n: Long): Double = n
 
     override def div(x: Double, y: Double): Double = x / y
     override def inv(x: Double): Double = 1 / x

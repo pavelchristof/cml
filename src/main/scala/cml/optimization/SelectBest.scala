@@ -1,7 +1,6 @@
 package cml.optimization
 
 import cml._
-import cml.ad
 import cml.algebra.traits._
 
 /**
@@ -14,26 +13,30 @@ case class SelectBest[In[_], Out[_]] (
   override def apply[A](
     population: Vector[model.Type[A]],
     data: Seq[(In[A], Out[A])],
+    subspace: Subspace[model.Type],
     costFun: CostFun[In, Out],
-    default: => A
+    noise: => A
   )(implicit
     fl: Floating[A],
     cmp: Ordering[A],
     diffEngine: cml.ad.Engine
   ): Vector[(A, model.Type[A])] = {
+    import fl.analyticSyntax._
+
     def score(inst: model.Type[A]): A =
-      costFun[model.Type, A](inst, model.score(inst)(data))(fl, model.space)
+      costFun.mean(model.applyParSeq(inst)(data.par)) +
+        costFun.regularization[subspace.Type, A](subspace.project[A](inst))(fl, subspace.concrete)
 
     var p = population
+      .par
       .map((inst: model.Type[A]) => (score(inst), inst))
       .filter(x => !fl.isNaN(x._1))
+      .toVector
       .sortBy(_._1)
       .take(count)
 
-    val subspace = model.space.restrict[A](score(_))(model.space.zero)
     while (p.size < count) {
-      val inst: model.Type[A] = subspace.inject(subspace.concrete.point(default))
-      println(inst)
+      val inst: model.Type[A] = subspace.inject(subspace.concrete.point(noise))
       val cost: A = score(inst)
       if (!fl.isNaN(cost)) {
         p +:= (cost, inst)

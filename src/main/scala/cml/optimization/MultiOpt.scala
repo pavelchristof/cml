@@ -1,7 +1,7 @@
 package cml.optimization
 
 import cml._
-import cml.algebra.traits.Floating
+import cml.algebra.traits._
 
 case class MultiOpt[In[_], Out[_]] (
   populationSize: Int,
@@ -12,30 +12,33 @@ case class MultiOpt[In[_], Out[_]] (
   def apply[A](
     population: Vector[model.Type[A]],
     data: Seq[(In[A], Out[A])],
+    subspace: Subspace[model.Type],
     costFun: CostFun[In, Out],
-    default: => A
+    noise: => A
   )(implicit
     fl: Floating[A],
     cmp: Ordering[A],
     diffEngine: ad.Engine
   ): Vector[(A, model.Type[A])] = {
     val selector = SelectBest(model, populationSize)
-    val instances: Vector[model.Type[A]] =
+    val instances =
       selector(
         population.asInstanceOf[Vector[selector.model.Type[A]]],
         data,
+        subspace.asInstanceOf[Subspace[selector.model.Type]],
         costFun,
-        default)
+        noise)
       .map(_._2)
       .asInstanceOf[Vector[model.Type[A]]]
 
     instances
-      .toParArray
+      .par
       .flatMap(inst => optimizer(
         Vector(inst.asInstanceOf[optimizer.model.Type[A]]),
         data,
+        subspace.asInstanceOf[Subspace[optimizer.model.Type]],
         costFun,
-        default
+        noise
       ))
       .toVector
       .asInstanceOf[Vector[(A, model.Type[A])]]

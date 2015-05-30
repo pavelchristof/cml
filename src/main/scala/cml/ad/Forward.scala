@@ -32,8 +32,6 @@ object Forward extends Engine {
 
     override def fromInt(n: Int): Aug[F] =
       Aug(f.fromInt(n), _0)
-
-    override def runtimeClass: Class[AugField[F]] = classOf[AugField[F]]
   }
 
   private class AugAnalytic[F](implicit f: Analytic[F]) extends AugField[F] with Analytic[Aug[F]] {
@@ -145,32 +143,5 @@ object Forward extends Engine {
       (implicit field: Field[F], space: Concrete[V]): (V[F]) => (F, V[F]) = x => {
     val value = f(space.tabulate(i => Aug(space.index(x)(i), field.zero)), DummyImplicit.dummyImplicit)._1
     (value, grad(f)(field, space)(x))
-  }
-
-  /**
-   * Computes the gradient of a function taking a vector as the argument.
-   */
-  override def gradLC[F, V[_]](f: (V[Aug[F]], DummyImplicit) => Aug[F])
-      (implicit an: Analytic[F], space: LocallyConcrete[V]): (V[F]) => V[F] = v => {
-    val subspace = space.restrict[Aug[F]]((x: V[Aug[F]]) => f(x, DummyImplicit.dummyImplicit))(space.mapLC(v)(constant(_)))
-    import subspace.concrete
-    def fr(u: subspace.Type[Aug[F]], ctx: Context[F]): Aug[F] =
-    f(subspace.inject(u)(analytic(an, ctx)), ctx)
-    val gradr = grad[F, subspace.Type](fr)
-    subspace.inject(gradr(subspace.project(v)))
-  }
-
-  /**
-   * Computes the value and gradient of a function taking a vector as the argument.
-   */
-  override def gradWithValueLC[F, V[_]](f: (V[Aug[F]], DummyImplicit) => Aug[F])
-      (implicit an: Analytic[F], space: LocallyConcrete[V]): (V[F]) => (F, V[F]) = v => {
-    val subspace = space.restrict[Aug[F]]((x: V[Aug[F]]) => f(x, null))(space.mapLC(v)(constant(_)))
-    import subspace.concrete
-    def fr(u: subspace.Type[Aug[F]], ctx: Context[F]): Aug[F] =
-      f(subspace.inject(u)(analytic(an, ctx)), ctx)
-    val gradr = gradWithValue[F, subspace.Type](fr)
-    val r = gradr(subspace.project(v))
-    (r._1, subspace.inject(r._2))
   }
 }

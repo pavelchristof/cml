@@ -10,7 +10,5 @@ trait Additive1[V[_]] {
     override val zero: V[F] = Additive1.this.zero
     override def neg(x: V[F]): V[F] = Additive1.this.neg(x)
     override def add(x: V[F], y: V[F]): V[F] = Additive1.this.add(x, y)
-
-    override def runtimeClass: Class[_] = zero.getClass
   }
 }

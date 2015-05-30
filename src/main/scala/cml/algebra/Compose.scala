@@ -4,6 +4,7 @@ import cml.Enumerate
 import cml.algebra.Compose._
 import cml.algebra.traits._
 
+import scala.reflect.ClassTag
 import scalaz._
 
 case class Compose[F[_], G[_]] () {
@@ -53,26 +54,15 @@ object Compose {
     extends ComposeAdditive1[F, G]
     with Linear[({type T[A] = (F[G[A]])})#T] {
     override def mull[A](a: A, v: F[G[A]])(implicit field: Field[A]): F[G[A]] =
-      f.mapLC(v)(g.mull(a, _))(g.additive[A], g.additive[A])
+      f.map(v)(g.mull(a, _))(g.additive[A], g.additive[A])
     override def mulr[A](v: F[G[A]], a: A)(implicit field: Field[A]): F[G[A]] =
-      f.mapLC(v)(g.mulr(_, a))(g.additive[A], g.additive[A])
+      f.map(v)(g.mulr(_, a))(g.additive[A], g.additive[A])
     override def div[A](v: F[G[A]], a: A)(implicit field: Field[A]): F[G[A]] =
-      f.mapLC(v)(g.div(_, a))(g.additive[A], g.additive[A])
-  }
-
-  class ComposeNormed[F[_], G[_]](implicit f: LocallyConcrete[F], g: Normed[G])
-    extends ComposeLinear[F, G]
-    with Normed[({type T[A] = (F[G[A]])})#T] {
-    override def sum[A](v: F[G[A]])(implicit a: Additive[A]): A =
-      f.sum(f.mapLC(v)(g.sum(_))(g.additive[A], a))
-    override def taxicab[A](v: F[G[A]])(implicit a: Analytic[A]): A =
-      f.sum(f.mapLC(v)(g.taxicab(_))(g.additive[A], a))
-    override def dot[A](u: F[G[A]], v: F[G[A]])(implicit field: Field[A]): A =
-      f.sum(f.apLC(v)(f.mapLC(u)((x: G[A]) => g.dot(x, _: G[A]))(g.additive[A], Instances.functionAdditive))(g.additive[A], field))
+      f.map(v)(g.div(_, a))(g.additive[A], g.additive[A])
   }
 
   class ComposeLocallyConcrete[F[_], G[_]](implicit f_ : LocallyConcrete[F], g_ : LocallyConcrete[G])
-    extends ComposeNormed[F, G]
+    extends ComposeLinear[F, G]
     with LocallyConcrete[({type T[A] = (F[G[A]])})#T] {
     val f = f_
     val g = g_
@@ -87,14 +77,14 @@ object Compose {
      */
     override def enumerateIndex: Enumerate[Index] =
       Enumerate.product(f.enumerateIndex, g.enumerateIndex)
-    
+
     /**
      * The (normal) basis for this vector space.
      */
     override def basis[A](i: Index)(implicit field: Field[A]): F[G[A]] = {
       val fb = f.basis(i._1)
       val gb = g.basis(i._2)
-      f.mapLC(fb)(g.mull(_, gb))(field, g.additive)
+      f.map(fb)(g.mull(_, gb))(field, g.additive)
     }
 
     /**
@@ -112,47 +102,36 @@ object Compose {
     /**
      * Maps the vector with a function f. It must hold that f(0) = 0.
      */
-    override def mapLC[A, B](x: F[G[A]])(h: (A) => B)(implicit a: Additive[A], b: Additive[B]): F[G[B]] =
-      f.mapLC(x)(g.mapLC(_)(h))(g.additive, g.additive)
+    override def map[A, B](x: F[G[A]])(h: (A) => B)(implicit a: Additive[A], b: Additive[B]): F[G[B]] =
+      f.map(x)(g.map(_)(h))(g.additive, g.additive)
 
     /**
      * Applies a vector of functions to a vector, pointwise. It must hold that f(0) = 0.
      */
-    override def apLC[A, B](x: F[G[A]])(h: F[G[(A) => B]])(implicit a: Additive[A], b: Additive[B]): F[G[B]] =
-      f.apLC(x)(
-        f.mapLC(h)(
-          (gab: G[A => B]) => g.apLC(_: G[A])(gab)
+    override def ap[A, B](x: F[G[A]])(h: F[G[(A) => B]])(implicit a: Additive[A], b: Additive[B]): F[G[B]] =
+      f.ap(x)(
+        f.map(h)(
+          (gab: G[A => B]) => g.ap(_: G[A])(gab)
         )(g.additive[(A) => B](Instances.functionAdditive), Instances.functionAdditive[G[A], G[B]](g.additive)))(g.additive[A], g.additive[B])
 
     /**
      * Applies a binary function pointwise. If must hold that f(0, 0) = 0.
      */
-    override def apply2LC[A, B, C](x: F[G[A]], y: F[G[B]])(h: (A, B) => C)
+    override def apply2[A, B, C](x: F[G[A]], y: F[G[B]])(h: (A, B) => C)
         (implicit a: Additive[A], b: Additive[B], c: Additive[C]): F[G[C]] =
-      f.apply2LC[G[A], G[B], G[C]](x, y)(
-        g.apply2LC(_, _)(h)
+      f.apply2[G[A], G[B], G[C]](x, y)(
+        g.apply2(_, _)(h)
       )(g.additive, g.additive, g.additive)
 
-    /**
-     * Returns the concrete subspace containing v.
-     */
-    override def restrict[A](v: F[G[A]])(implicit field: Field[A]): Subspace[({type T[A] = (F[G[A]])})#T] = {
-      val fv: F[A] = f.mapLC(v)(g.sum(_))(g.additive, field)
-      val gv: G[A] = f.sum(v)(g.additive)
+    override def restrict(keys: Set[Index]): Subspace[({type T[A] = F[G[A]]})#T] =
+      ComposeSubspace[F, G](f.restrict(keys.map(_._1)), g.restrict(keys.map(_._2)))
+  }
 
-      ComposeSubspace[F, G](f.restrict(fv), g.restrict(gv))
-    }
-
-    override def restrict[A](h: (F[G[A]]) => A)(v: F[G[A]])
-        (implicit a: Additive[A]): Subspace[({type T[A] = F[G[A]]})#T] = {
-      val fv: F[A] = f.mapLC(v)(g.sum(_))(g.additive, a)
-      val gv: G[A] = f.sum(v)(g.additive)
-
-      val x = f.restrict((u: F[A]) => h(f.mapLC[A, G[A]](u)(_ => g.zero)(a, g.additive)))(fv)
-      val y = g.restrict((u: G[A]) => h(x.inject(x.concrete.point(u))(g.additive)))(gv)
-
-      ComposeSubspace[F, G](x, y)
-    }
+  class ComposeNormed[F[_], G[_]](implicit f: Normed[F], g: Normed[G])
+    extends ComposeLocallyConcrete[F, G]
+    with Normed[({type T[A] = (F[G[A]])})#T] {
+    override def sum[A](v: F[G[A]])(implicit a: Additive[A]): A =
+      f.sum(f.map(v)(g.sum(_))(g.additive[A], a))
   }
 
   case class ComposeSubspace[F[_], G[_]](x : Subspace[F], y : Subspace[G])(implicit f : LocallyConcrete[F], g : LocallyConcrete[G])
@@ -160,16 +139,16 @@ object Compose {
     override type Type[A] = x.Type[y.Type[A]]
 
     override def inject[A](u: Type[A])(implicit a: Additive[A]): F[G[A]] =
-      x.inject(x.concrete.map[y.Type[A], G[A]](u)(y.inject(_)))(g.additive)
+      x.inject(x.concrete.map[y.Type[A], G[A]](u)(y.inject(_))(y.concrete.additive, g.additive))(g.additive)
     override def project[A](v: F[G[A]])(implicit a: Additive[A]): Type[A] =
-      x.concrete.map(x.project(v)(g.additive))(y.project(_))
+      x.concrete.map(x.project(v)(g.additive))(y.project(_))(g.additive, y.concrete.additive)
 
     override implicit val concrete: Concrete[Type] =
       new ComposeConcrete[x.Type, y.Type]()(x.concrete, y.concrete)
   }
 
   case class ComposeConcrete[F[_], G[_]](implicit override val f: Concrete[F], override val g: Concrete[G])
-    extends ComposeLocallyConcrete[F, G]
+    extends ComposeNormed[F, G]
     with Concrete[({type T[A] = (F[G[A]])})#T] {
     /**
      * The (finite) dimension of this vector space.
@@ -179,8 +158,8 @@ object Compose {
     /**
      * Construct a vector from coefficients of the basis vectors.
      */
-    override def tabulate[A](h: (Index) => A): F[G[A]] =
-      f.tabulate(i => g.tabulate(j => h((i, j))))
+    override def tabulate[A](h: (Index) => A)(implicit additive: Additive[A]): F[G[A]] =
+      f.tabulate(i => g.tabulate(j => h((i, j))))(g.additive[A])
 
     /**
      * Find the coefficient of a basis vector.
@@ -188,19 +167,7 @@ object Compose {
     def index[A](v: F[G[A]])(i: Index): A =
       g.index(f.index(v)(i._1))(i._2)
 
-    override def map[A, B](v: F[G[A]])(h: (A) => B): F[G[B]] =
-      f.map(v)(g.map(_)(h))
-
-    override def point[A](a: => A): F[G[A]] =
-      f.point(g.point(a))
-
-    override def ap[A, B](x: => F[G[A]])(h: => F[G[(A) => B]]): F[G[B]] =
-      f.ap(x)(f.map(h)(gab => g.ap(_)(gab)))
-
-    override def foldMap[A, B](v: F[G[A]])(h: (A) => B)(implicit F: Monoid[B]): B =
-      f.foldMap(v)(g.foldMap(_)(h))
-
-    override def foldRight[A, B](v: F[G[A]], z: => B)(h: (A, => B) => B): B =
-      f.foldRight(v, z)(g.foldRight(_, _)(h))
+    override def point[A](a: => A)(implicit additive: Additive[A]): F[G[A]] =
+      f.point(g.point(a))(g.additive)
   }
 }

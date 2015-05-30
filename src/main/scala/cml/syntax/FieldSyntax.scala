@@ -16,6 +16,7 @@ trait FieldSyntax[F] extends RingSyntax[F] {
   implicit def ToFieldOps(v: F): FieldOps[F] = new FieldOps[F](v)(FieldSyntax.this.F)
 
   def fromInt(n: Int): F = F.fromInt(n)
+  def fromLong(n: Long): F = F.fromLong(n)
 
   def F: Field[F]
 }

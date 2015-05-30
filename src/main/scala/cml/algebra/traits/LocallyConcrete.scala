@@ -3,11 +3,9 @@ package cml.algebra.traits
 import cml.Enumerate
 
 /**
- * Potentially infinitely dimensional vector space with a countable (normal) basis and the property that for each
- * vector v a locally concrete vector space contains a concrete subspace including v and closed under projection on
- * the basis vectors, called the restriction to v.
+ * Potentially infinitely (but countably) dimensional vector space.
  */
-trait LocallyConcrete[V[_]] extends Normed[V] {
+trait LocallyConcrete[V[_]] extends Linear[V] {
   /**
    * A countable or finite set indexing the basis.
    */
@@ -22,11 +20,6 @@ trait LocallyConcrete[V[_]] extends Normed[V] {
    * Dimension of the vector space, possibly infinite.
    */
   def dim: Option[BigInt] = enumerateIndex.count
-
-  /**
-   * The (finite) dimension of a vector, equal to the dimension of the restriction to v.
-   */
-  def dim[A](v: V[A])(implicit field: Field[A]): BigInt = restrict(v).concrete.dimFin
 
   /**
    * The (normal) basis for this vector space.
@@ -46,29 +39,20 @@ trait LocallyConcrete[V[_]] extends Normed[V] {
   /**
    * Maps the vector with a function f. It must hold that f(0) = 0.
    */
-  def mapLC[A, B](x: V[A])(f: (A) => B)(implicit a: Additive[A], b: Additive[B]): V[B]
+  def map[A, B](x: V[A])(f: (A) => B)(implicit a: Additive[A], b: Additive[B]): V[B]
 
   /**
    * Applies a vector of functions to a vector, pointwise. It must hold for each function that f(0) = 0.
    */
-  def apLC[A, B](x: V[A])(f: V[A => B])(implicit a: Additive[A], b: Additive[B]): V[B]
+  def ap[A, B](x: V[A])(f: V[A => B])(implicit a: Additive[A], b: Additive[B]): V[B]
 
   /**
-   * Applies a binary function pointwise. If must hold that f(0, 0) = 0.
+   * Applies a binary function pointwise. It must hold that f(0, 0) = 0.
    */
-  def apply2LC[A, B, C](x: V[A], y: V[B])(f: (A, B) => C)(implicit a: Additive[A], b: Additive[B], c: Additive[C]): V[C]
+  def apply2[A, B, C](x: V[A], y: V[B])(f: (A, B) => C)(implicit a: Additive[A], b: Additive[B], c: Additive[C]): V[C]
 
   /**
-   * Returns a concrete subspace containing v.
+   * Returns a finite subspace restricted to a set of keys.
    */
-  def restrict[A](v: V[A])(implicit field: Field[A]): Subspace[V]
-
-  /**
-   * The subspace X does not always depend on the vector v. It only depends on v (and contains restrict(v)) when the
-   * function f uses accumulating functions such as sum(), length(), etc. Otherwise the subspace X is constant for
-   * all v in V.
-   *
-   * TODO: figure out what does it really do.
-   */
-  def restrict[A](h: (V[A]) => A)(v: V[A])(implicit a: Additive[A]): Subspace[V]
+  def restrict(keys: Set[Index]): Subspace[V]
 }
