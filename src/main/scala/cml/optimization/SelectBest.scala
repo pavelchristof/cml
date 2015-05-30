@@ -22,21 +22,22 @@ case class SelectBest[In[_], Out[_]] (
     diffEngine: cml.ad.Engine
   ): Vector[(A, model.Type[A])] = {
     import fl.analyticSyntax._
+    import subspace._
 
     def score(inst: model.Type[A]): A =
       costFun.mean(model.applyParSeq(inst)(data.par)) +
-        costFun.regularization[subspace.Type, A](subspace.project[A](inst))(fl, subspace.space)
+        costFun.regularization[subspace.Type, A](project(inst))(fl, space)
 
     var p = population
       .par
-      .map((inst: model.Type[A]) => (score(inst), inst))
+      .map(inst => (score(inst), inst))
       .filter(x => !fl.isNaN(x._1))
       .toVector
       .sortBy(_._1)
       .take(count)
 
     while (p.size < count) {
-      val inst: model.Type[A] = subspace.inject(subspace.space.point(noise))
+      val inst = inject(space.point(noise))
       val cost: A = score(inst)
       if (!fl.isNaN(cost)) {
         p +:= (cost, inst)
