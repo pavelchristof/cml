@@ -2,12 +2,17 @@ package cml.algebra.traits
 
 import cml.syntax.FieldSyntax
 
-trait Field[T] extends Ring[T] {
+/**
+ * A field.
+ */
+trait Field[T] extends AbelianRing[T] {
   def div(x: T, y: T): T = mul(x, inv(y))
   def inv(x: T): T
 
   /**
-   * Adds one n times in O(log n) time.
+   * Adds one to itself n times.
+   *
+   * Default implementation performs O(log n) multiplications.
    */
   def fromInt(n: Int): T = {
     import fieldSyntax._
@@ -27,7 +32,9 @@ trait Field[T] extends Ring[T] {
   }
 
   /**
-   * Adds one n times in O(log n) time.
+   * Adds one to itself n times.
+   *
+   * Default implementation performs O(log n) multiplications.
    */
   def fromLong(n: Long): T = {
     import fieldSyntax._
@@ -47,4 +54,15 @@ trait Field[T] extends Ring[T] {
   }
 
   val fieldSyntax = new FieldSyntax[T] { def F = Field.this }
+}
+
+object Field {
+  implicit object Z2 extends Field[Boolean] {
+    override val zero: Boolean = false
+    override val one: Boolean = true
+    override def add(x: Boolean, y: Boolean): Boolean = x ^ y
+    override def neg(x: Boolean): Boolean = x
+    override def mul(x: Boolean, y: Boolean): Boolean = x && y
+    override def inv(x: Boolean): Boolean = true
+  }
 }
