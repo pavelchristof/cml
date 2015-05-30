@@ -3,18 +3,42 @@ package cml.algebra.traits
 /**
  * An endofunctor on the category of pointed types.
  */
-trait ZeroFunctor[V[_]] {
+trait ZeroFunctor[F[_]] {
   /**
-   * Each object (A, zero : A) is mapped to an object (V[A], zero : V[A]).
+   * Each object (A, zero : A) is mapped to an object (F[A], zero : F[A]).
    */
-  def zero[A](implicit a: Zero[A]): V[A]
-
-  def zeroInst[A](implicit a: Zero[A]): Zero[V[A]] = new Zero[V[A]] {
-    override val zero: V[A] = ZeroFunctor.this.zero
-  }
+  def zero[A](implicit a: Zero[A]): F[A]
 
   /**
    * Lifts a zero preserving function.
    */
-  def map[A, B](v: V[A])(f: (A) => B)(implicit a: Zero[A], b: Zero[B]): V[B]
+  def map[A, B](v: F[A])(h: (A) => B)(implicit a: Zero[A], b: Zero[B]): F[B]
+}
+
+object ZeroFunctor {
+  implicit def asZero[F[_], A](implicit f: ZeroFunctor[F], a: Zero[A]): Zero[F[A]] = new Zero[F[A]] {
+    override val zero: F[A] = f.zero[A]
+  }
+
+  class Product[F[_], G[_]] (implicit f: ZeroFunctor[F], g: ZeroFunctor[G])
+    extends ZeroFunctor[({type T[A] = (F[A], G[A])})#T] {
+    override def zero[A](implicit a: Zero[A]): (F[A], G[A]) =
+      (f.zero, g.zero)
+
+    override def map[A, B](v: (F[A], G[A]))(h: (A) => B)(implicit a: Zero[A], b: Zero[B]): (F[B], G[B]) =
+      (f.map(v._1)(h), g.map(v._2)(h))
+  }
+
+  implicit def product[F[_], G[_]](implicit f: ZeroFunctor[F], g: ZeroFunctor[G]) = new Product[F, G]
+
+  class Compose[F[_], G[_]] (implicit f: ZeroFunctor[F], g: ZeroFunctor[G])
+    extends ZeroFunctor[({type T[A] = F[G[A]]})#T] {
+    override def zero[A](implicit a: Zero[A]): F[G[A]] =
+      f.zero[G[A]]
+
+    override def map[A, B](v: F[G[A]])(h: (A) => B)(implicit a: Zero[A], b: Zero[B]): F[G[B]] =
+      f.map(v)(g.map(_)(h))
+  }
+
+  implicit def compose[F[_], G[_]](implicit f: ZeroFunctor[F], g: ZeroFunctor[G]) = new Compose[F, G]
 }
