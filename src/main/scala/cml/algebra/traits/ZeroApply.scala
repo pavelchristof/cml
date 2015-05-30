@@ -8,13 +8,17 @@ trait ZeroApply[V[_]] extends ZeroFunctor[V] {
     ap(y)(map(x)((q: A) => (w: B) => (q, w)))
 
   /**
-   * Applies a function pointwise.
+   * Applies functions pointwise.
+   *
+   * The functions must preserve zeros.
    */
   def ap[A, B](x: V[A])(h: V[A => B])(implicit a: Zero[A], b: Zero[B]): V[B] =
     map(zip(x, h))(xh => xh._2(xh._1))
 
   /**
    * Zips two "vectors" and applies a function pointwise.
+   *
+   * The function must preserve zeros, i.e. h((0, 0)) = 0.
    */
   def apply2[A, B, C](x: V[A], y: V[B])(h: (A, B) => C)(implicit a: Zero[A], b: Zero[B], c: Zero[C]): V[C] =
     map(zip(x, y))(ab => h(ab._1, ab._2))

@@ -16,9 +16,12 @@ trait ZeroFunctor[F[_]] {
 }
 
 object ZeroFunctor {
-  implicit def asZero[F[_], A](implicit f: ZeroFunctor[F], a: Zero[A]): Zero[F[A]] = new Zero[F[A]] {
+  class AsZero[F[_], A] (implicit f: ZeroFunctor[F], a: Zero[A])
+    extends Zero[F[A]] {
     override val zero: F[A] = f.zero[A]
   }
+
+  implicit def asZero[F[_], A](implicit f: ZeroFunctor[F], a: Zero[A]) = new AsZero[F, A]
 
   class Product[F[_], G[_]] (implicit f: ZeroFunctor[F], g: ZeroFunctor[G])
     extends ZeroFunctor[({type T[A] = (F[A], G[A])})#T] {
