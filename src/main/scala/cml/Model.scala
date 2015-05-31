@@ -49,5 +49,21 @@ trait Model[In[_], Out[_]] {
       expected = out,
       actual = apply(inst)(in)
     )}
+
+  /**
+   * Convert data to some different number type.
+   */
+  def convertData[A, B](data: Seq[(In[A], Out[A])])
+      (implicit a: Floating[A], b: Analytic[B], inFunctor: ZeroFunctor[In], outFunctor: ZeroFunctor[Out]) = {
+    def convert(x: A): B = b.fromDouble(a.toDouble(x))
+    data.map{ case (in, out) => (inFunctor.map(in)(convert), outFunctor.map(out)(convert)) }
+  }
+
+  def restrict[A](data: Seq[(In[A], Out[A])], costFun: CostFun[In, Out])
+      (implicit a: Floating[A], inFunctor: ZeroFunctor[In], outFunctor: ZeroFunctor[Out]): Subspace[Type] = {
+    val keys = space.reflect(inst => costFun.sum(applyParSeq(inst)(convertData(data).par)))
+    println(keys)
+    space.restrict(keys)
+  }
 }
 

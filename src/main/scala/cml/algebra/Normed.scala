@@ -62,13 +62,16 @@ object Normed {
     override def sum[A](v: Map[K, A])(implicit a: Additive[A]): A =
       v.values.fold(a.zero)(a.add)
 
+    override def tabulate[A](v: (K) => A)(implicit a: Zero[A]): Map[K, A] =
+      Map().withDefault(v)
+
     override def tabulatePartial[A](v: Map[K, A])(implicit a: Zero[A]): Map[K, A] =
       v
 
     override def index[A](v: Map[K, A])(k: K)(implicit a: Zero[A]): A =
       v.getOrElse(k, a.zero)
 
-    override def restrict(keys: Set[K]): Subspace[({type T[A] = Map[K, A]})#T] =
+    override def restrict(keys: => Set[K]): Subspace[({type T[A] = Map[K, A]})#T] =
       new MapSubspace[K](keys.zipWithIndex.toMap)
 
     class MapSubspace[K] (keyMap: Map[K, Int]) extends Subspace[({type T[A] = Map[K, A]})#T] {
