@@ -62,7 +62,7 @@ object Normed {
     override def sum[A](v: Map[K, A])(implicit a: Additive[A]): A =
       v.values.fold(a.zero)(a.add)
 
-    override def tabulate[A](v: Map[K, A])(implicit a: Zero[A]): Map[K, A] =
+    override def tabulatePartial[A](v: Map[K, A])(implicit a: Zero[A]): Map[K, A] =
       v
 
     override def index[A](v: Map[K, A])(k: K)(implicit a: Zero[A]): A =

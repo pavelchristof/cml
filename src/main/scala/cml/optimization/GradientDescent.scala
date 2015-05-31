@@ -12,8 +12,8 @@ case class GradientDescent[In[_], Out[_]] (
   gradTrans: GradTrans = Stabilize,
   chunkSize: Int = 50
 )(implicit
-  inSpace: Representable[In],
-  outSpace: Representable[Out]
+  inFunctor: ZeroFunctor[In],
+  outFunctor: ZeroFunctor[Out]
 ) extends Optimizer[In, Out] {
   override def apply[A](
     population: Vector[model.Type[A]],
@@ -33,8 +33,8 @@ case class GradientDescent[In[_], Out[_]] (
     def costOnSamples(samples: Seq[(In[A], Out[A])])(inst: Type[Aug[A]], ctx: Context[A]): Aug[A] = {
       implicit val an = analytic(fl, ctx)
       samples.map(sample => {
-        val input = inSpace.map(sample._1)(constant(_))
-        val output = outSpace.map(sample._2)(constant(_))
+        val input = inFunctor.map(sample._1)(constant(_))
+        val output = outFunctor.map(sample._2)(constant(_))
         val scored = Sample(
           input = input,
           expected = output,

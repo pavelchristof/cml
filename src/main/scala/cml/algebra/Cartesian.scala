@@ -20,8 +20,8 @@ trait Cartesian[F[_]] extends Normed[F] with ZeroApplicative[F] {
   /**
    * Creates a new vector from a map. Coefficients for keys not in the map are zero.
    */
-  final override def tabulate[A](v: Map[Key, A])(implicit a: Zero[A]): F[A] =
-    tabulate((k: Key) => v.getOrElse(k, a.zero))
+  final override def tabulatePartial[A](v: Map[Key, A])(implicit a: Zero[A]): F[A] =
+    tabulate(k => v.getOrElse(k, a.zero))
 
   /**
    * Returns the whole space.

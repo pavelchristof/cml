@@ -11,7 +11,7 @@ trait Representable[F[_]] extends Linear[F] {
   /**
    * Creates a new vector from a map. Coefficients for keys not in the map are zero.
    */
-  def tabulate[A](v: Map[Key, A])(implicit a: Zero[A]): F[A]
+  def tabulatePartial[A](v: Map[Key, A])(implicit a: Zero[A]): F[A]
 
   /**
    * Returns a finitely-dimensional subspace of F, spanned (at least) by the unit vectors with
@@ -32,10 +32,10 @@ object Representable {
       case Right(i) => g.index(v._2)(i)
     }
 
-    override def tabulate[A](v: Map[Key, A])(implicit a: Zero[A]): (F[A], G[A]) = {
+    override def tabulatePartial[A](v: Map[Key, A])(implicit a: Zero[A]): (F[A], G[A]) = {
       val lefts = for ((i, v) <- v; j <- i.left.toSeq) yield (j, v)
       val rights = for ((i, v) <- v; j <- i.right.toSeq) yield (j, v)
-      (f.tabulate(lefts.toMap), g.tabulate(rights.toMap))
+      (f.tabulatePartial(lefts.toMap), g.tabulatePartial(rights.toMap))
     }
 
     override def restrict(keys: Set[Key]): Subspace[({type T[A] = (F[A], G[A])})#T] = {
@@ -54,11 +54,11 @@ object Representable {
     override def index[A](v: F[G[A]])(k: Key)(implicit a: Zero[A]): A =
       g.index(f.index(v)(k._1))(k._2)
 
-    override def tabulate[A](v: Map[Key, A])(implicit a: Zero[A]): F[G[A]] = {
+    override def tabulatePartial[A](v: Map[Key, A])(implicit a: Zero[A]): F[G[A]] = {
       val u: Map[f.Key, Map[g.Key, A]] = v
         .groupBy(_._1._1)
         .mapValues(_.map(kv => (kv._1._2, kv._2)))
-      f.tabulate(u.mapValues(g.tabulate(_)))
+      f.tabulatePartial(u.mapValues(g.tabulatePartial(_)))
     }
 
     override def restrict(keys: Set[Key]): Subspace[({type T[A] = F[G[A]]})#T] =

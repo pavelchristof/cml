@@ -62,7 +62,6 @@ object ModelTest extends App {
 
   val learned = optimizer[Double](
       population = Vector(),
-      subspace = optimizer.model.space.restrict(Set.empty[optimizer.model.space.Key]),
       data = data,
       costFun = costFun,
       noise = rng.nextDouble() * 2 - 1)
