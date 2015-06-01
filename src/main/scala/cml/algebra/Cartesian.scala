@@ -56,9 +56,6 @@ object Cartesian {
     override def index[A](v: Unit)(k: Void)(implicit a: Zero[A]): A =
       throw new NoSuchElementException
 
-    override def applyC2[A, B, C](x: Unit, y: Unit)(h: (A, B) => C)
-        (implicit a: Zero[A], b: Zero[B], c: Zero[C]): Unit = ()
-
     override def apply2[A, B, C](x: Unit, y: Unit)(h: (A, B) => C)
         (implicit a: Zero[A], b: Zero[B], c: Zero[C]): Unit = ()
 
@@ -77,16 +74,10 @@ object Cartesian {
     override def apply2[A, B, C](x: A, y: B)(h: (A, B) => C)
         (implicit a: Zero[A], b: Zero[B], c: Zero[C]): C = h(x, y)
 
-    override def applyC2[A, B, C](x: A, y: B)(h: (A, B) => C)
-        (implicit a: Zero[A], b: Zero[B], c: Zero[C]): C = h(x, y)
-
     override def zip[A, B](x: A, y: B)
         (implicit a: Zero[A], b: Zero[B]): (A, B) = (x, y)
 
     override def ap[A, B](x: A)(h: (A) => B)
-        (implicit a: Zero[A], b: Zero[B]): B = h(x)
-
-    override def apC[A, B](x: A)(h: (A) => B)
         (implicit a: Zero[A], b: Zero[B]): B = h(x)
 
     override def point[A](x: A)(implicit a: Zero[A]): A = x
@@ -114,19 +105,11 @@ object Cartesian {
         (implicit a: Zero[A], b: Zero[B], c: Zero[C]): Vec[S, C] =
       Vec(Array.tabulate(dim)(i => h(x.get(i), y.get(i))))
 
-    override def applyC2[A, B, C](x: Vec[S, A], y: Vec[S, B])(h: (A, B) => C)
-        (implicit a: Zero[A], b: Zero[B], c: Zero[C]): Vec[S, C] =
-      Vec(Array.tabulate(dim)(i => h(x.get(i), y.get(i))))
-
     override def zip[A, B](x: Vec[S, A], y: Vec[S, B])
         (implicit a: Zero[A], b: Zero[B]): Vec[S, (A, B)] =
       Vec(Array.tabulate(dim)(i => (x.get(i), y.get(i))))
 
     override def ap[A, B](x: Vec[S, A])(h: Vec[S, (A) => B])
-        (implicit a: Zero[A], b: Zero[B]): Vec[S, B] =
-      Vec(Array.tabulate(dim)(i => h.get(i)(x.get(i))))
-
-    override def apC[A, B](x: Vec[S, A])(h: Vec[S, (A) => B])
         (implicit a: Zero[A], b: Zero[B]): Vec[S, B] =
       Vec(Array.tabulate(dim)(i => h.get(i)(x.get(i))))
 

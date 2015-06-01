@@ -61,8 +61,10 @@ trait Model[In[_], Out[_]] {
 
   def restrict[A](data: Seq[(In[A], Out[A])], costFun: CostFun[In, Out])
       (implicit a: Floating[A], inFunctor: ZeroFunctor[In], outFunctor: ZeroFunctor[Out]): Subspace[Type] = {
-    val keys = space.reflect(inst => costFun.sum(applyParSeq(inst)(convertData(data).par)))
-    println(keys)
+    val keys = space.reflect(inst => {
+      val samples = applyParSeq(inst)(convertData[A, Reflector[space.Key]](data).par)
+      costFun.sum(samples)
+    })
     space.restrict(keys)
   }
 }

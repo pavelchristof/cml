@@ -10,8 +10,8 @@ case class HashMap[K, V[_]] (implicit
 ) extends Model[({type T[A] = Const[K, A]})#T, V] {
   override type Type[A] = Map[K, V[A]]
 
-  implicit val mapSpace = Normed.map[K]
-  override implicit val space = Representable.compose[({type T[A] = Map[K, A]})#T, V](Normed.map, valueSpace)
+  implicit val mapSpace = Representable.map[K]
+  override implicit val space = Representable.compose[({type T[A] = Map[K, A]})#T, V](Representable.map, valueSpace)
 
   import ZeroFunctor.asZero
 

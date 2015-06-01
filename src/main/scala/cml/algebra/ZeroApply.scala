@@ -14,26 +14,9 @@ trait ZeroApply[V[_]] extends ZeroFunctor[V] {
     apply2(x, h)((y, f) => f(y))
 
   /**
-   * Applies functions pointwise. This is a more constrainted (and faster) version of ap.
-   *
-   * The functions must preserve zeros.
-   */
-  def apC[A, B](x: V[A])(h: V[(A) => B])(implicit a: Zero[A], b: Zero[B]): V[B] =
-    applyC2(x, h)((y, f) => f(y))
-
-  /**
    * Zips two "vectors" and applies a function pointwise.
-   *
-   * The function must preserve zeros, i.e. h(0, 0) = 0.
    */
   def apply2[A, B, C](x: V[A], y: V[B])(h: (A, B) => C)(implicit a: Zero[A], b: Zero[B], c: Zero[C]): V[C]
-
-  /**
-   * Zips two "vectors" and applies a function pointwise. This is a more constrained (and faster) version of apply2.
-   *
-   * The function must preserve zeros in each arguments, i.e. h(0, x) = 0 and h(x, 0) = 0.
-   */
-  def applyC2[A, B, C](x: V[A], y: V[B])(h: (A, B) => C)(implicit a: Zero[A], b: Zero[B], c: Zero[C]): V[C]
 }
 
 object ZeroApply {
@@ -49,17 +32,9 @@ object ZeroApply {
         (implicit a: Zero[A], b: Zero[B]): (F[B], G[B]) =
       (f.ap(x._1)(h._1), g.ap(x._2)(h._2))
 
-    override def apC[A, B](x: (F[A], G[A]))(h: (F[(A) => B], G[(A) => B]))
-        (implicit a: Zero[A], b: Zero[B]): (F[B], G[B]) =
-      (f.apC(x._1)(h._1), g.apC(x._2)(h._2))
-
     override def apply2[A, B, C](x: (F[A], G[A]), y: (F[B], G[B]))(h: (A, B) => C)
         (implicit a: Zero[A], b: Zero[B], c: Zero[C]): (F[C], G[C]) =
       (f.apply2(x._1, y._1)(h), g.apply2(x._2, y._2)(h))
-
-    override def applyC2[A, B, C](x: (F[A], G[A]), y: (F[B], G[B]))(h: (A, B) => C)
-        (implicit a: Zero[A], b: Zero[B], c: Zero[C]): (F[C], G[C]) =
-      (f.applyC2(x._1, y._1)(h), g.applyC2(x._2, y._2)(h))
   }
 
   implicit def product[F[_], G[_]](implicit f: ZeroApply[F], g: ZeroApply[G]) = new Product[F, G]
@@ -69,19 +44,12 @@ object ZeroApply {
     override def zip[A, B](x: F[G[A]], y: F[G[B]])(implicit a: Zero[A], b: Zero[B]): F[G[(A, B)]] =
       f.map(f.zip(x, y))(ab => g.zip(ab._1, ab._2))
 
-    override def apC[A, B](x: F[G[A]])(h: F[G[(A) => B]])(implicit a: Zero[A], b: Zero[B]): F[G[B]] =
-      f.apC[G[A], G[B]](x)(f.map(h)(gab => ga => g.apC(ga)(gab)))
-
     override def ap[A, B](x: F[G[A]])(h: F[G[(A) => B]])(implicit a: Zero[A], b: Zero[B]): F[G[B]] =
       f.ap[G[A], G[B]](x)(f.map(h)(gab => ga => g.ap(ga)(gab)))
 
     override def apply2[A, B, C](x: F[G[A]], y: F[G[B]])(h: (A, B) => C)
         (implicit a: Zero[A], b: Zero[B], c: Zero[C]): F[G[C]] =
       f.apply2(x, y)(g.apply2(_, _)(h))
-
-    override def applyC2[A, B, C](x: F[G[A]], y: F[G[B]])(h: (A, B) => C)
-        (implicit a: Zero[A], b: Zero[B], c: Zero[C]): F[G[C]] =
-      f.applyC2(x, y)(g.applyC2(_, _)(h))
   }
 
   implicit def compose[F[_], G[_]](implicit f: ZeroApply[F], g: ZeroApply[G]) = new Compose[F, G]
