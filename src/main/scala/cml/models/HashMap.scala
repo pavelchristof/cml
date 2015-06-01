@@ -1,6 +1,7 @@
 package cml.models
 
 import cml._
+import cml.algebra.Representable.HashMapWithDefault
 import cml.algebra._
 
 import scalaz.Const
@@ -8,10 +9,11 @@ import scalaz.Const
 case class HashMap[K, V[_]] (implicit
   valueSpace: Cartesian[V]
 ) extends Model[({type T[A] = Const[K, A]})#T, V] {
-  override type Type[A] = Map[K, V[A]]
+  override type Type[A] = HashMapWithDefault[K, V[A]]
 
-  implicit val mapSpace = Representable.map[K]
-  override implicit val space = Representable.compose[({type T[A] = Map[K, A]})#T, V](Representable.map, valueSpace)
+  implicit val mapSpace = Representable.hashMap[K]
+  override implicit val space =
+    Representable.compose[({type T[A] = HashMapWithDefault[K, A]})#T, V](mapSpace, valueSpace)
 
   import ZeroFunctor.asZero
 

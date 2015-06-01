@@ -1,5 +1,6 @@
 package cml.algebra
 
+import scala.collection.immutable.HashMap
 import scalaz.Scalaz._
 
 trait Representable[F[_]] extends Linear[F] with ZeroApplicative[F] {
@@ -100,42 +101,82 @@ object Representable {
 
   implicit def compose[F[_], G[_]](implicit f: Representable[F], g: Representable[G]) = new Compose[F, G]
 
-  class MapInst[K] extends Representable[({type T[A] = Map[K, A]})#T] {
+  case class HashMapWithDefault[A, +B] (
+    base: HashMap[A, B],
+    d: (A) => B
+  ) extends Map[A, B] with Serializable {
+    override def +[B1 >: B](kv: (A, B1)): HashMapWithDefault[A, B1] =
+      HashMapWithDefault(base + kv, d)
+
+    override def -(key: A): HashMapWithDefault[A, B] =
+      HashMapWithDefault(base - key, d)
+
+    override def get(key: A): Option[B] =
+      base.get(key)
+
+    override def iterator: Iterator[(A, B)] =
+      base.iterator
+
+    override def withDefault[B1 >: B](d: (A) => B1): HashMapWithDefault[A, B1] =
+      HashMapWithDefault(base, d)
+
+    override def withDefaultValue[B1 >: B](d: B1): HashMapWithDefault[A, B1] =
+      HashMapWithDefault(base, SerializableFunction.Constant(d))
+
+    override def default(key: A): B =
+      d(key)
+
+    override def mapValues[C](f: (B) => C): HashMapWithDefault[A, C] =
+      HashMapWithDefault(base.map(kv => (kv._1, f(kv._2))), SerializableFunction.Compose(f, d))
+
+    def zipWith[C, R](that: HashMapWithDefault[A, C], f: (B, C) => R): HashMapWithDefault[A, R] = {
+      val b = HashMap.newBuilder[A, R]
+      for ((k, v) <- base) {
+        b += k -> f(v, that.applyOrElse(k, that.default))
+      }
+      for ((k, v) <- that.base if !contains(k)) {
+        b += k -> f(d(k), v)
+      }
+      HashMapWithDefault(b.result(), new SerializableFunction[A, R] {
+        override def apply(k: A): R = f(d(k), that.d(k))
+      })
+    }
+  }
+
+  class HashMapInst[K] extends Representable[({type T[A] = HashMapWithDefault[K, A]})#T] {
     override type Key = K
 
-    override def zero[A](implicit a: Zero[A]): Map[K, A] =
-      Map().withDefaultValue(a.zero)
+    override def zero[A](implicit a: Zero[A]): HashMapWithDefault[K, A] =
+      HashMapWithDefault(HashMap(), SerializableFunction.Constant(a.zero))
 
-    override def map[A, B](v: Map[K, A])(h: (A) => B)(implicit a: Zero[A], b: Zero[B]): Map[K, B] =
-      v.mapValues(h).withDefault(k => h(v.default(k)))
+    override def map[A, B](v: HashMapWithDefault[K, A])(h: (A) => B)
+        (implicit a: Zero[A], b: Zero[B]): HashMapWithDefault[K, B] =
+      v.mapValues(h)
 
-    override def apply2[A, B, C](x: Map[K, A], y: Map[K, B])(h: (A, B) => C)
-        (implicit a: Zero[A], b: Zero[B], c: Zero[C]): Map[K, C] = {
-      val allInX = x.map(kv => (kv._1, h(kv._2, y.applyOrElse(kv._1, y.default))))
-      val inYButNotInX = y.flatMap(kv => if (x.contains(kv._1)) None else Some(kv._1, h(x.default(kv._1), kv._2)))
-      (allInX ++ inYButNotInX).withDefault(k => h(x.default(k), y.default(k)))
-    }
+    override def apply2[A, B, C](x: HashMapWithDefault[K, A], y: HashMapWithDefault[K, B])(h: (A, B) => C)
+        (implicit a: Zero[A], b: Zero[B], c: Zero[C]): HashMapWithDefault[K, C] =
+      x.zipWith(y, h)
 
-    override def tabulate[A](v: (K) => A)(implicit a: Zero[A]): Map[K, A] =
-      Map().withDefault(v)
+    override def tabulate[A](v: (K) => A)(implicit a: Zero[A]): HashMapWithDefault[K, A] =
+      HashMapWithDefault(HashMap(), v)
 
-    override def tabulatePartial[A](v: Map[K, A])(implicit a: Zero[A]): Map[K, A] =
-      v.withDefaultValue(a.zero)
+    override def tabulatePartial[A](v: Map[K, A])(implicit a: Zero[A]): HashMapWithDefault[K, A] =
+      HashMapWithDefault(HashMap(v.toSeq : _*), SerializableFunction.Constant(a.zero))
 
-    override def index[A](v: Map[K, A])(k: K)(implicit a: Zero[A]): A =
+    override def index[A](v: HashMapWithDefault[K, A])(k: K)(implicit a: Zero[A]): A =
       v.applyOrElse(k, v.default)
 
-    override def restrict(keys: => Set[K]): Subspace[({type T[A] = Map[K, A]})#T] =
-      new MapSubspace[K](keys.zipWithIndex.toMap)
+    override def restrict(keys: => Set[K]): Subspace[({type T[A] = HashMapWithDefault[K, A]})#T] =
+      new MapSubspace[K](HashMap[K, Int](keys.zipWithIndex.toSeq : _*))
 
-    class MapSubspace[K] (keyMap: Map[K, Int]) extends Subspace[({type T[A] = Map[K, A]})#T] {
+    class MapSubspace[K] (keyMap: HashMap[K, Int]) extends Subspace[({type T[A] = HashMapWithDefault[K, A]})#T] {
       val sizeNat = RuntimeNat(keyMap.size)
 
       override type Type[A] = Vec[sizeNat.Type, A]
 
       override implicit val space: Cartesian[Type] = Cartesian.vec(sizeNat())
 
-      override def project[A](v: Map[K, A])(implicit a: Zero[A]): Type[A] = {
+      override def project[A](v: HashMapWithDefault[K, A])(implicit a: Zero[A]): Type[A] = {
         val arr = new Array[A](keyMap.size)
         for ((k, i) <- keyMap) {
           arr(i) = v.applyOrElse(k, v.default)
@@ -143,16 +184,10 @@ object Representable {
         Vec(arr)
       }
 
-      override def inject[A](u: Type[A])(implicit a: Zero[A]): Map[K, A] = new Map[K, A] {
-        override def +[B1 >: A](kv: (K, B1)): Map[K, B1] = throw new UnsupportedOperationException()
-        override def -(key: K): Map[K, A] =  throw new UnsupportedOperationException()
-
-        override def get(key: K): Option[A] = Some(u.get(keyMap(key)))
-
-        override def iterator: Iterator[(K, A)] = keyMap.iterator.map(ki => (ki._1, u.get(ki._2)))
-      }.withDefaultValue(a.zero)
+      override def inject[A](u: Type[A])(implicit a: Zero[A]): HashMapWithDefault[K, A] =
+        HashMapWithDefault(keyMap.map(kv => (kv._1, u.get(kv._2))), SerializableFunction.Constant(a.zero))
     }
   }
 
-  implicit def map[K] = new MapInst[K]
+  implicit def hashMap[K] = new HashMapInst[K]
 }
