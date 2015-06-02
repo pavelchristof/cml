@@ -31,6 +31,11 @@ trait Model[In[_], Out[_]] {
   def apply[A](inst: Type[A])(input: In[A])(implicit a: Analytic[A]): Out[A]
 
   /**
+   * Applies the model to some input using just a subspace of parameters (the rest are assumed to be 0).
+   */
+  def applySubspace[A](subspace: space.AllowedSubspace, inst: Any)(input: In[A])(implicit a: Analytic[A]): Out[A]
+
+  /**
    * Applies the model to the data set.
    */
   def applySeq[A](inst: Type[A])(data: Seq[(In[A], Out[A])])(implicit a: Analytic[A]): Seq[Sample[In[A], Out[A]]] =
@@ -38,6 +43,17 @@ trait Model[In[_], Out[_]] {
       input = in,
       expected = out,
       actual = apply(inst)(in)
+    )}
+
+  /**
+   * Applies the model to the data set.
+   */
+  def applySubspaceSeq[A](subspace: space.AllowedSubspace, inst: Any)(data: Seq[(In[A], Out[A])])
+      (implicit a: Analytic[A]): Seq[Sample[In[A], Out[A]]] =
+    data.map{ case (in, out) => Sample(
+      input = in,
+      expected = out,
+      actual = applySubspace(subspace, inst)(in)
     )}
 
   /**
@@ -51,6 +67,17 @@ trait Model[In[_], Out[_]] {
     )}
 
   /**
+   * Applies the model to the data set.
+   */
+  def applySubspaceParSeq[A](subspace: space.AllowedSubspace, inst: Any)(data: ParSeq[(In[A], Out[A])])
+      (implicit a: Analytic[A]): ParSeq[Sample[In[A], Out[A]]] =
+    data.map{ case (in, out) => Sample(
+      input = in,
+      expected = out,
+      actual = applySubspace(subspace, inst)(in)
+    )}
+
+  /**
    * Convert data to some different number type.
    */
   def convertData[A, B](data: Seq[(In[A], Out[A])])
@@ -60,7 +87,7 @@ trait Model[In[_], Out[_]] {
   }
 
   def restrict[A](data: Seq[(In[A], Out[A])], costFun: CostFun[In, Out])
-      (implicit a: Floating[A], inFunctor: ZeroFunctor[In], outFunctor: ZeroFunctor[Out]): Subspace[Type] = {
+      (implicit a: Floating[A], inFunctor: ZeroFunctor[In], outFunctor: ZeroFunctor[Out]): space.AllowedSubspace = {
     val keys = space.reflect(inst => {
       val samples = applyParSeq(inst)(convertData[A, Reflector[space.Key]](data).par)
       costFun.sum(samples)

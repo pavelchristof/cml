@@ -25,21 +25,21 @@ trait Subspace[F[_]] {
 object Subspace {
   import ZeroFunctor.asZero
 
-  class Product[F[_], G[_]] (val f: Subspace[F], val g: Subspace[G])
+  class Product[F[_], G[_], FS <: Subspace[F], GS <: Subspace[G]] (val _1: FS, val _2: GS)
     extends Subspace[({type T[A] = (F[A], G[A])})#T] {
-    override type Type[A] = (f.Type[A], g.Type[A])
+    override type Type[A] = (_1.Type[A], _2.Type[A])
 
     override def inject[A](u: Type[A])(implicit a: Zero[A]): (F[A], G[A]) =
-      (f.inject(u._1), g.inject(u._2))
+      (_1.inject(u._1), _2.inject(u._2))
 
     override def project[A](v: (F[A], G[A]))(implicit a: Zero[A]): Type[A] =
-      (f.project(v._1), g.project(v._2))
+      (_1.project(v._1), _2.project(v._2))
 
-    override implicit val space: Cartesian[({type T[A] = (f.Type[A], g.Type[A])})#T] =
-      Cartesian.product[f.Type, g.Type](f.space, g.space)
+    override implicit val space: Cartesian[({type T[A] = (_1.Type[A], _2.Type[A])})#T] =
+      Cartesian.product[_1.Type, _2.Type](_1.space, _2.space)
   }
 
-  class Compose[F[_], G[_]] (val f: Subspace[F], val g: Subspace[G])
+  class Compose[F[_], G[_], FS <: Subspace[F], GS <: Subspace[G]] (val f: FS, val g: GS)
       (implicit fs: ZeroFunctor[F], gs: ZeroFunctor[G])
     extends Subspace[({type T[A] = F[G[A]]})#T] {
     override type Type[A] = f.Type[g.Type[A]]

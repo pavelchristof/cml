@@ -1,9 +1,10 @@
 package cml.models
 
 import cml._
+import cml.algebra.Subspace.WholeSpace
 import cml.algebra._
 
-case class BilinearMap[In1[_], In2[_], Out[_]] (implicit
+final case class BilinearMap[In1[_], In2[_], Out[_]] (implicit
   in1Space: Cartesian[In1],
   in2Space: Cartesian[In2],
   outSpace: Cartesian[Out]
@@ -16,4 +17,8 @@ case class BilinearMap[In1[_], In2[_], Out[_]] (implicit
 
   override def apply[F](inst: Type[F])(input: (In1[F], In2[F]))(implicit a: Analytic[F]): Out[F] =
     linearMap(bilinearMap(inst)(input._1))(input._2)
+
+  override def applySubspace[A](subspace: WholeSpace[Type], inst: Any)(input: (In1[A], In2[A]))
+      (implicit a: Analytic[A]): Out[A] =
+    apply(inst.asInstanceOf[subspace.Type[A]])(input)
 }

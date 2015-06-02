@@ -19,9 +19,14 @@ trait Cartesian[F[_]] extends Normed[F] {
     tabulate(k => v.getOrElse(k, a.zero))
 
   /**
+   * We allow only the whole space.
+   */
+  final override type AllowedSubspace = Subspace.WholeSpace[F]
+
+  /**
    * Returns the whole space.
    */
-  final override def restrict(keys: => Set[Key]): Subspace[F] =
+  final override def restrict(keys: => Set[Key]): Subspace.WholeSpace[F] =
     new Subspace.WholeSpace[F]()(this)
 }
 
@@ -29,15 +34,21 @@ object Cartesian {
   import ZeroFunctor.asZero
 
   class Product[F[_], G[_]] (implicit override val f: Cartesian[F], override val g: Cartesian[G])
-    extends Normed.Product[F, G] with Cartesian[({type T[A] = (F[A], G[A])})#T] {
+    extends Representable.ProductBase[F, G] with Cartesian[({type T[A] = (F[A], G[A])})#T] {
     override val dim: Int = f.dim + g.dim
+
+    override def sum[A](v: (F[A], G[A]))(implicit a: Additive[A]): A =
+      a.add(f.sum(v._1), g.sum(v._2))
   }
 
   implicit def product[F[_], G[_]](implicit f: Cartesian[F], g: Cartesian[G]) = new Product[F, G]
 
   class Compose[F[_], G[_]] (implicit override val f: Cartesian[F], override val g: Cartesian[G])
-    extends Normed.Compose[F, G] with Cartesian[({type T[A] = F[G[A]]})#T] {
+    extends Representable.ComposeBase[F, G] with Cartesian[({type T[A] = F[G[A]]})#T] {
     override val dim: Int = f.dim * g.dim
+
+    override def sum[A](v: F[G[A]])(implicit a: Additive[A]): A =
+      f.sum(f.map(v)(g.sum(_)))
   }
 
   implicit def compose[F[_], G[_]](implicit f: Cartesian[F], g: Cartesian[G]) = new Compose[F, G]

@@ -1,6 +1,7 @@
 package cml.models
 
 import cml.Model
+import cml.algebra.Subspace.WholeSpace
 import cml.algebra._
 
 case class LinearMap[In[_], Out[_]] (
@@ -14,6 +15,9 @@ case class LinearMap[In[_], Out[_]] (
 
   import ZeroFunctor.asZero
 
-  override def apply[F](inst: Type[F])(input: In[F])(implicit a: Analytic[F]): Out[F] =
+  override def apply[A](inst: Type[A])(input: In[A])(implicit a: Analytic[A]): Out[A] =
     outSpace.map(inst)(inSpace.dot(input, _))
+
+  override def applySubspace[A](subspace: WholeSpace[Type], inst: Any)(input: In[A])(implicit a: Analytic[A]): Out[A] =
+    apply(inst.asInstanceOf[subspace.Type[A]])(input)
 }

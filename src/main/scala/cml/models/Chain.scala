@@ -3,7 +3,7 @@ package cml.models
 import cml._
 import cml.algebra._
 
-case class Chain2[In[_], Mid[_], Out[_]] (
+final case class Chain2[In[_], Mid[_], Out[_]] (
   m1: Model[In, Mid],
   m2: Model[Mid, Out]
 ) extends Model[In, Out] {
@@ -13,9 +13,17 @@ case class Chain2[In[_], Mid[_], Out[_]] (
 
   override def apply[F](inst: Type[F])(input: In[F])(implicit f: Analytic[F]): Out[F] =
     m2(inst._2)(m1(inst._1)(input))
+
+  override def applySubspace[A](subspace: space.AllowedSubspace, inst: Any)(input: In[A])
+      (implicit a: Analytic[A]): Out[A] = {
+    val i = inst.asInstanceOf[subspace.Type[A]]
+    val s1 = subspace._1.asInstanceOf[m1.space.AllowedSubspace]
+    val s2 = subspace._2.asInstanceOf[m2.space.AllowedSubspace]
+    m2.applySubspace(s2, i._2)(m1.applySubspace(s1, i._1)(input))
+  }
 }
 
-case class Chain3[In[_], Mid1[_], Mid2[_], Out[_]] (
+final case class Chain3[In[_], Mid1[_], Mid2[_], Out[_]] (
   m1: Model[In, Mid1],
   m2: Model[Mid1, Mid2],
   m3: Model[Mid2, Out]
@@ -28,9 +36,17 @@ case class Chain3[In[_], Mid1[_], Mid2[_], Out[_]] (
 
   override def apply[F](inst: Type[F])(input: In[F])(implicit f: Analytic[F]): Out[F] =
     chain(inst._2)(m1(inst._1)(input))
+
+  override def applySubspace[A](subspace: space.AllowedSubspace, inst: Any)(input: In[A])
+      (implicit a: Analytic[A]): Out[A] = {
+    val i = inst.asInstanceOf[subspace.Type[A]]
+    val s1 = subspace._1.asInstanceOf[m1.space.AllowedSubspace]
+    val s2 = subspace._2.asInstanceOf[chain.space.AllowedSubspace]
+    chain.applySubspace(s2, i._2)(m1.applySubspace(s1, i._1)(input))
+  }
 }
 
-case class Chain4[In[_], Mid1[_], Mid2[_], Mid3[_], Out[_]] (
+final case class Chain4[In[_], Mid1[_], Mid2[_], Mid3[_], Out[_]] (
   m1: Model[In, Mid1],
   m2: Model[Mid1, Mid2],
   m3: Model[Mid2, Mid3],
@@ -44,9 +60,17 @@ case class Chain4[In[_], Mid1[_], Mid2[_], Mid3[_], Out[_]] (
 
   override def apply[F](inst: Type[F])(input: In[F])(implicit f: Analytic[F]): Out[F] =
     chain(inst._2)(m1(inst._1)(input))
+
+  override def applySubspace[A](subspace: space.AllowedSubspace, inst: Any)(input: In[A])
+      (implicit a: Analytic[A]): Out[A] = {
+    val i = inst.asInstanceOf[subspace.Type[A]]
+    val s1 = subspace._1.asInstanceOf[m1.space.AllowedSubspace]
+    val s2 = subspace._2.asInstanceOf[chain.space.AllowedSubspace]
+    chain.applySubspace(s2, i._2)(m1.applySubspace(s1, i._1)(input))
+  }
 }
 
-case class Chain5[In[_], Mid1[_], Mid2[_], Mid3[_], Mid4[_], Out[_]] (
+final case class Chain5[In[_], Mid1[_], Mid2[_], Mid3[_], Mid4[_], Out[_]] (
   m1: Model[In, Mid1],
   m2: Model[Mid1, Mid2],
   m3: Model[Mid2, Mid3],
@@ -61,9 +85,17 @@ case class Chain5[In[_], Mid1[_], Mid2[_], Mid3[_], Mid4[_], Out[_]] (
 
   override def apply[F](inst: Type[F])(input: In[F])(implicit f: Analytic[F]): Out[F] =
     chain(inst._2)(m1(inst._1)(input))
+
+  override def applySubspace[A](subspace: space.AllowedSubspace, inst: Any)(input: In[A])
+      (implicit a: Analytic[A]): Out[A] = {
+    val i = inst.asInstanceOf[subspace.Type[A]]
+    val s1 = subspace._1.asInstanceOf[m1.space.AllowedSubspace]
+    val s2 = subspace._2.asInstanceOf[chain.space.AllowedSubspace]
+    chain.applySubspace(s2, i._2)(m1.applySubspace(s1, i._1)(input))
+  }
 }
 
-case class Chain6[In[_], Mid1[_], Mid2[_], Mid3[_], Mid4[_], Mid5[_], Out[_]] (
+final case class Chain6[In[_], Mid1[_], Mid2[_], Mid3[_], Mid4[_], Mid5[_], Out[_]] (
   m1: Model[In, Mid1],
   m2: Model[Mid1, Mid2],
   m3: Model[Mid2, Mid3],
@@ -79,9 +111,17 @@ case class Chain6[In[_], Mid1[_], Mid2[_], Mid3[_], Mid4[_], Mid5[_], Out[_]] (
 
   override def apply[F](inst: Type[F])(input: In[F])(implicit f: Analytic[F]): Out[F] =
     chain(inst._2)(m1(inst._1)(input))
+
+  override def applySubspace[A](subspace: space.AllowedSubspace, inst: Any)(input: In[A])
+      (implicit a: Analytic[A]): Out[A] = {
+    val i = inst.asInstanceOf[subspace.Type[A]]
+    val s1 = subspace._1.asInstanceOf[m1.space.AllowedSubspace]
+    val s2 = subspace._2.asInstanceOf[chain.space.AllowedSubspace]
+    chain.applySubspace(s2, i._2)(m1.applySubspace(s1, i._1)(input))
+  }
 }
 
-case class Chain7[In[_], Mid1[_], Mid2[_], Mid3[_], Mid4[_], Mid5[_], Mid6[_], Out[_]] (
+final case class Chain7[In[_], Mid1[_], Mid2[_], Mid3[_], Mid4[_], Mid5[_], Mid6[_], Out[_]] (
   m1: Model[In, Mid1],
   m2: Model[Mid1, Mid2],
   m3: Model[Mid2, Mid3],
@@ -98,4 +138,12 @@ case class Chain7[In[_], Mid1[_], Mid2[_], Mid3[_], Mid4[_], Mid5[_], Mid6[_], O
 
   override def apply[F](inst: Type[F])(input: In[F])(implicit f: Analytic[F]): Out[F] =
     chain(inst._2)(m1(inst._1)(input))
+
+  override def applySubspace[A](subspace: space.AllowedSubspace, inst: Any)(input: In[A])
+      (implicit a: Analytic[A]): Out[A] = {
+    val i = inst.asInstanceOf[subspace.Type[A]]
+    val s1 = subspace._1.asInstanceOf[m1.space.AllowedSubspace]
+    val s2 = subspace._2.asInstanceOf[chain.space.AllowedSubspace]
+    chain.applySubspace(s2, i._2)(m1.applySubspace(s1, i._1)(input))
+  }
 }

@@ -11,7 +11,7 @@ import scalaz._
 object ModelTest extends App {
   implicit val diffEngine = ad.Backward
 
-  val vecSize = RuntimeNat(1)
+  val vecSize = RuntimeNat(3)
 
   type VecIn[A] = A
   type VecHidden[A] = Vec[vecSize.Type, A]
@@ -38,7 +38,7 @@ object ModelTest extends App {
 
     override def regularization[V[_], A](inst: V[A])(implicit a: Analytic[A], space: Normed[V]): A = {
       import a.analyticSyntax._
-      fromDouble(0.001) * space.quadrance(inst)
+      fromDouble(0) * space.quadrance(inst)
     }
   }
 
@@ -49,27 +49,24 @@ object ModelTest extends App {
     (4d, 0d)
   )
 
-  var rng = new Random()
 
-  val optimizer = MultiOpt(
-    populationSize = 16,
-    optimizer = GradientDescent(
-      model,
-      iterations = 1000,
-      gradTrans = Stabilize.andThen(AdaGrad)
-    )
+  val optimizer = GradientDescent(
+    model,
+    iterations = 1000,
+    gradTrans = Stabilize.andThen(AdaGrad)
   )
 
+  var rng = new Random()
+  val subspace = optimizer.model.restrict(data, costFun)
+  val initialInst = subspace.space.tabulate(_ => rng.nextDouble() * 0.2 - 0.1)
+
   val learned = optimizer[Double](
-      population = Vector(),
-      data = data,
-      costFun = costFun,
-      noise = rng.nextDouble() * 2 - 1)
-    .minBy(_._1)
-    ._2
-    .asInstanceOf[model.Type[Double]]
+      subspace,
+      data,
+      costFun,
+      initialInst)
 
   for (i <- Array(1d, 2d, 3d, 4d)) {
-    println(model(learned)(i))
+    println(optimizer.model(learned)(i))
   }
 }

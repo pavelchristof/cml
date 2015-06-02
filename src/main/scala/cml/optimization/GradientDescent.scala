@@ -15,22 +15,21 @@ case class GradientDescent[In[_], Out[_]] (
   inFunctor: ZeroFunctor[In],
   outFunctor: ZeroFunctor[Out]
 ) extends Optimizer[In, Out] {
-  override def apply[A](
-    population: Vector[model.Type[A]],
+
+  def apply[A](
+    subspace: model.space.AllowedSubspace,
     data: Seq[(In[A], Out[A])],
     costFun: CostFun[In, Out],
-    noise: => A,
-    subspace: Subspace[model.Type] = model.space.restrict(Set())
+    initialInst: Any // subspace.Type[A]
   )(implicit
     fl: Floating[A],
     cmp: Ordering[A],
-    diffEngine: cml.ad.Engine
-  ): Vector[(A, model.Type[A])] = {
+    diffEngine: ad.Engine
+  ): model.Type[A] = {
     import diffEngine._
     import fl.analyticSyntax._
-    import subspace._
 
-    def costOnSamples(samples: Seq[(In[A], Out[A])])(inst: Type[Aug[A]], ctx: Context[A]): Aug[A] = {
+    def costOnSamples(samples: Seq[(In[A], Out[A])])(inst: subspace.Type[Aug[A]], ctx: Context[A]): Aug[A] = {
       implicit val an = analytic(fl, ctx)
       samples.map(sample => {
         val input = inFunctor.map(sample._1)(constant(_))
@@ -38,51 +37,38 @@ case class GradientDescent[In[_], Out[_]] (
         val scored = Sample(
           input = input,
           expected = output,
-          actual = model(inject(inst))(input)
+          actual = model.applySubspace(subspace, inst)(input)
         )
         costFun.scoreSample(scored)
       }).fold(an.zero)(an.add(_, _))
     }
 
-    def reg(inst: Type[Aug[A]], ctx: Context[A]): Aug[A] = {
-      costFun.regularization[Type, Aug[A]](inst)(analytic(fl, ctx), space)
+    def reg(inst: subspace.Type[Aug[A]], ctx: Context[A]): Aug[A] = {
+      costFun.regularization[subspace.Type, Aug[A]](inst)(analytic(fl, ctx), subspace.space)
     }
 
-    def totalCost(inst: Type[A]): A =
-      costFun.mean(model.applyParSeq(inject(inst))(data.par)) +
-        costFun.regularization[Type, A](inst)(fl, space)
+    def totalCost(inst: subspace.Type[A]): A =
+      costFun.mean(model.applySubspaceParSeq(subspace, inst)(data.par)) +
+        costFun.regularization[subspace.Type, A](inst)(fl, subspace.space)
 
-    // Select or create a model instance.
-    val selector = SelectBest(model, count = 1)
-    val instLC =
-      selector(
-        population.asInstanceOf[Vector[selector.model.Type[A]]],
-        data,
-        costFun,
-        noise,
-        subspace.asInstanceOf[Subspace[selector.model.Type]])
-      .head
-      ._2
-      .asInstanceOf[model.Type[A]]
-
-    var inst = project(instLC)
+    var inst = initialInst.asInstanceOf[subspace.Type[A]]
     var best = inst
     var bestCost = totalCost(best)
-    val tr = gradTrans.create[Type, A]()(fl, space)
+    val tr = gradTrans.create[subspace.Type, A]()(fl, subspace.space)
 
     for (i <- 1 to iterations) {
       var gradAcc = data
         .grouped(chunkSize)
         .map(samples =>
-          grad[A, Type](costOnSamples(samples)(_, _))(fl, space)(inst)
+          grad[A, subspace.Type](costOnSamples(samples)(_, _))(fl, subspace.space)(inst)
         )
-        .reduce(space.add(_, _))
-      gradAcc = space.div(gradAcc, fl.fromInt(data.size))
+        .reduce(subspace.space.add(_, _))
+      gradAcc = subspace.space.div(gradAcc, fl.fromInt(data.size))
 
-      val gradReg = grad[A, Type](reg(_, _))(fl, space)(inst)
-      gradAcc = space.add(gradAcc, gradReg)
+      val gradReg = grad[A, subspace.Type](reg(_, _))(fl, subspace.space)(inst)
+      gradAcc = subspace.space.add(gradAcc, gradReg)
 
-      inst = space.sub(inst, tr(gradAcc))
+      inst = subspace.space.sub(inst, tr(gradAcc))
       val cost = totalCost(inst)
       println(s"Iteration $i: ${cost}")
 
@@ -92,6 +78,6 @@ case class GradientDescent[In[_], Out[_]] (
       }
     }
 
-    Vector((bestCost, inject(best)))
+    subspace.inject(best)
   }
 }

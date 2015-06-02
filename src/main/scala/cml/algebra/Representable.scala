@@ -27,10 +27,15 @@ trait Representable[F[_]] extends Linear[F] with ZeroApplicative[F] {
   override def point[A](x: A)(implicit a: Zero[A]): F[A] = tabulate(_ => x)
 
   /**
+   * The type of possible subspaces. This allows us to constraint the possible subspaces.
+   */
+  type AllowedSubspace <: Subspace[F]
+
+  /**
    * Returns a finitely-dimensional subspace of F, spanned (at least) by the unit vectors with
    * ones at positions given by the passed key set.
    */
-  def restrict(keys: => Set[Key]): Subspace[F]
+  def restrict(keys: => Set[Key]): AllowedSubspace
 
   /**
    * Finds out the set of keys that the given function is accessing.
@@ -46,7 +51,7 @@ trait Representable[F[_]] extends Linear[F] with ZeroApplicative[F] {
 object Representable {
   import ZeroFunctor.asZero
 
-  class Product[F[_], G[_]] (implicit val f: Representable[F], val g: Representable[G])
+  abstract class ProductBase[F[_], G[_]] (implicit val f: Representable[F], val g: Representable[G])
     extends Linear.Product[F, G] with Representable[({type T[A] = (F[A], G[A])})#T] {
     override type Key = Either[f.Key, g.Key]
 
@@ -66,16 +71,21 @@ object Representable {
 
     override def point[A](x: A)(implicit a: Zero[A]): (F[A], G[A]) =
       (f.point(x), g.point(x))
+  }
 
-    override def restrict(keys: => Set[Key]): Subspace[({type T[A] = (F[A], G[A])})#T] =
-      new Subspace.Product[F, G](
+  class Product[F[_], G[_]] (implicit override val f: Representable[F], override val g: Representable[G])
+      extends ProductBase[F, G] {
+    override type AllowedSubspace = Subspace.Product[F, G, f.AllowedSubspace, g.AllowedSubspace]
+
+    override def restrict(keys: => Set[Key]): AllowedSubspace =
+      new Subspace.Product(
         f.restrict(keys.flatMap(_.left.toSeq)),
         g.restrict(keys.flatMap(_.right.toSeq)))
   }
 
   implicit def product[F[_], G[_]](implicit f: Representable[F], g: Representable[G]) = new Product[F, G]
 
-  class Compose[F[_], G[_]] (implicit val f: Representable[F], val g: Representable[G])
+  abstract class ComposeBase[F[_], G[_]] (implicit val f: Representable[F], val g: Representable[G])
     extends Linear.Compose[F, G] with Representable[({type T[A] = F[G[A]]})#T] {
     override type Key = (f.Key, g.Key)
 
@@ -94,9 +104,14 @@ object Representable {
 
     override def point[A](x: A)(implicit a: Zero[A]): F[G[A]] =
       f.point(g.point(x))
+  }
 
-    override def restrict(keys: => Set[Key]): Subspace[({type T[A] = F[G[A]]})#T] =
-      new Subspace.Compose[F, G](f.restrict(keys.map(_._1)), g.restrict(keys.map(_._2)))
+  class Compose[F[_], G[_]] (implicit override val f: Representable[F], override val g: Representable[G])
+    extends ComposeBase[F, G] with Representable[({type T[A] = F[G[A]]})#T] {
+    override type AllowedSubspace = Subspace.Compose[F, G, f.AllowedSubspace, g.AllowedSubspace]
+
+    override def restrict(keys: => Set[Key]): AllowedSubspace =
+      new Subspace.Compose(f.restrict(keys.map(_._1)), g.restrict(keys.map(_._2)))
   }
 
   implicit def compose[F[_], G[_]](implicit f: Representable[F], g: Representable[G]) = new Compose[F, G]
@@ -166,15 +181,15 @@ object Representable {
     override def index[A](v: HashMapWithDefault[K, A])(k: K)(implicit a: Zero[A]): A =
       v.applyOrElse(k, v.default)
 
-    override def restrict(keys: => Set[K]): Subspace[({type T[A] = HashMapWithDefault[K, A]})#T] =
-      new MapSubspace[K](HashMap[K, Int](keys.zipWithIndex.toSeq : _*))
+    override def restrict(keys: => Set[K]): AllowedSubspace =
+      new AllowedSubspace(HashMap[K, Int](keys.zipWithIndex.toSeq : _*))
 
-    class MapSubspace[K] (keyMap: HashMap[K, Int]) extends Subspace[({type T[A] = HashMapWithDefault[K, A]})#T] {
+    class AllowedSubspace (val keyMap: HashMap[K, Int]) extends Subspace[({type T[A] = HashMapWithDefault[K, A]})#T] {
       val sizeNat = RuntimeNat(keyMap.size)
 
       override type Type[A] = Vec[sizeNat.Type, A]
 
-      override implicit val space: Cartesian[Type] = Cartesian.vec(sizeNat())
+      override implicit val space = Cartesian.vec(sizeNat())
 
       override def project[A](v: HashMapWithDefault[K, A])(implicit a: Zero[A]): Type[A] = {
         val arr = new Array[A](keyMap.size)

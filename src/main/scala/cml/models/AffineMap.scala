@@ -1,9 +1,10 @@
 package cml.models
 
 import cml.Model
+import cml.algebra.Subspace.WholeSpace
 import cml.algebra._
 
-case class AffineMap[In[_], Out[_]] (implicit
+final case class AffineMap[In[_], Out[_]] (implicit
   inSpace: Cartesian[In],
   outSpace: Cartesian[Out]
 ) extends Model[In, Out] {
@@ -18,4 +19,8 @@ case class AffineMap[In[_], Out[_]] (implicit
     import ZeroFunctor.asZero
     outSpace.map(inst)(v => inSpace.dot(input, v._1) + v._2)
   }
+
+  override def applySubspace[A](subspace: WholeSpace[Type], inst: Any)(input: In[A])
+      (implicit a: Analytic[A]): Out[A] =
+    apply(inst.asInstanceOf[subspace.Type[A]])(input)
 }
