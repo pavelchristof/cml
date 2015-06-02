@@ -45,7 +45,7 @@ trait Representable[F[_]] extends Linear[F] with ZeroApplicative[F] {
    * and constant for all arguments.
    */
   def reflect(h: (F[Reflector[Key]]) => Reflector[Key]): Set[Key] =
-    h(tabulate(k => Reflector(Set(k)))).keys
+    h(tabulate(Reflector(_))).extract()
 }
 
 object Representable {
