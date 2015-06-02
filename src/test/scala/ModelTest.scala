@@ -4,6 +4,7 @@ import cml.models._
 import cml.optimization._
 import Cartesian._
 import Floating._
+import org.apache.spark.{SparkContext, SparkConf}
 
 import scala.util.Random
 import scalaz._
@@ -42,13 +43,15 @@ object ModelTest extends App {
     }
   }
 
-  val data = Seq(
+  val sparkConf = new SparkConf().setAppName("ModelTest").setMaster("local[*]")
+  val sc = new SparkContext(sparkConf)
+
+  val data = sc.parallelize(Seq(
     (1d, 1d),
     (2d, 0d),
     (3d, 1d),
     (4d, 0d)
-  )
-
+  ))
 
   val optimizer = GradientDescent(
     model,

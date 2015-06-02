@@ -1,6 +1,7 @@
 package cml
 
 import cml.algebra._
+import org.apache.spark.rdd.RDD
 import scala.collection.parallel.ParSeq
 
 /**
@@ -48,17 +49,6 @@ trait Model[In[_], Out[_]] {
   /**
    * Applies the model to the data set.
    */
-  def applySubspaceSeq[A](subspace: space.AllowedSubspace, inst: Any)(data: Seq[(In[A], Out[A])])
-      (implicit a: Analytic[A]): Seq[Sample[In[A], Out[A]]] =
-    data.map{ case (in, out) => Sample(
-      input = in,
-      expected = out,
-      actual = applySubspace(subspace, inst)(in)
-    )}
-
-  /**
-   * Applies the model to the data set.
-   */
   def applyParSeq[A](inst: Type[A])(data: ParSeq[(In[A], Out[A])])(implicit a: Analytic[A]): ParSeq[Sample[In[A], Out[A]]] =
     data.map{ case (in, out) => Sample(
       input = in,
@@ -69,6 +59,24 @@ trait Model[In[_], Out[_]] {
   /**
    * Applies the model to the data set.
    */
+  def applyRDD[A](inst: Type[A])(data: RDD[(In[A], Out[A])])(implicit a: Analytic[A]): RDD[Sample[In[A], Out[A]]] =
+    data.map{ case (in, out) => Sample(
+      input = in,
+      expected = out,
+      actual = apply(inst)(in)
+    )}
+
+  /**
+   * Applies the model to the data set.
+   */
+  def applySubspaceSeq[A](subspace: space.AllowedSubspace, inst: Any)(data: Seq[(In[A], Out[A])])
+      (implicit a: Analytic[A]): Seq[Sample[In[A], Out[A]]] =
+    data.map{ case (in, out) => Sample(
+      input = in,
+      expected = out,
+      actual = applySubspace(subspace, inst)(in)
+    )}
+
   def applySubspaceParSeq[A](subspace: space.AllowedSubspace, inst: Any)(data: ParSeq[(In[A], Out[A])])
       (implicit a: Analytic[A]): ParSeq[Sample[In[A], Out[A]]] =
     data.map{ case (in, out) => Sample(
@@ -77,21 +85,30 @@ trait Model[In[_], Out[_]] {
       actual = applySubspace(subspace, inst)(in)
     )}
 
-  /**
-   * Convert data to some different number type.
-   */
-  def convertData[A, B](data: Seq[(In[A], Out[A])])
-      (implicit a: Floating[A], b: Analytic[B], inFunctor: ZeroFunctor[In], outFunctor: ZeroFunctor[Out]) = {
+  def applySubspaceRDD[A](subspace: space.AllowedSubspace, inst: Any)(data: RDD[(In[A], Out[A])])
+      (implicit a: Analytic[A]): RDD[Sample[In[A], Out[A]]] =
+    data.map{ case (in, out) => Sample(
+      input = in,
+      expected = out,
+      actual = applySubspace(subspace, inst)(in)
+    )}
+
+  def convertSample[A, B](s: (In[A], Out[A]))
+      (implicit a: Floating[A], b: Analytic[B], inFunctor: ZeroFunctor[In], outFunctor: ZeroFunctor[Out]): (In[B], Out[B]) = {
     def convert(x: A): B = b.fromDouble(a.toDouble(x))
-    data.map{ case (in, out) => (inFunctor.map(in)(convert), outFunctor.map(out)(convert)) }
+    (inFunctor.map(s._1)(convert), outFunctor.map(s._2)(convert))
   }
 
-  def restrict[A](data: Seq[(In[A], Out[A])], costFun: CostFun[In, Out])
+  def restrict[A](data: RDD[(In[A], Out[A])], costFun: CostFun[In, Out])
       (implicit a: Floating[A], inFunctor: ZeroFunctor[In], outFunctor: ZeroFunctor[Out]): space.AllowedSubspace = {
-    val keys = space.reflect(inst => {
-      val samples = applyParSeq(inst)(convertData[A, Reflector[space.Key]](data).par)
-      costFun.sum(samples)
-    })
+    val keys = data
+      .map(convertSample[A, Reflector[space.Key]])
+      .map(sample => space.reflect(inst => costFun.scoreSample(Sample[In[Reflector[space.Key]], Out[Reflector[space.Key]]](
+        input = sample._1,
+        expected = sample._2,
+        actual = apply(inst)(sample._1)
+      ))))
+      .reduce(_ ++ _)
     space.restrict(keys)
   }
 }

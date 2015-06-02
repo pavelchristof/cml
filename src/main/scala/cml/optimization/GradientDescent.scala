@@ -2,6 +2,7 @@ package cml.optimization
 
 import cml._
 import cml.algebra._
+import org.apache.spark.rdd.RDD
 
 /**
  * Basic gradient descent.
@@ -18,7 +19,7 @@ case class GradientDescent[In[_], Out[_]] (
 
   def apply[A](
     subspace: model.space.AllowedSubspace,
-    data: Seq[(In[A], Out[A])],
+    data: RDD[(In[A], Out[A])],
     costFun: CostFun[In, Out],
     initialInst: Any // subspace.Type[A]
   )(implicit
@@ -29,7 +30,7 @@ case class GradientDescent[In[_], Out[_]] (
     import diffEngine._
     import fl.analyticSyntax._
 
-    def costOnSamples(samples: Seq[(In[A], Out[A])])(inst: subspace.Type[Aug[A]], ctx: Context[A]): Aug[A] = {
+    def costOnSamples(samples: Iterator[(In[A], Out[A])])(inst: subspace.Type[Aug[A]], ctx: Context[A]): Aug[A] = {
       implicit val an = analytic(fl, ctx)
       samples.map(sample => {
         val input = inFunctor.map(sample._1)(constant(_))
@@ -48,7 +49,7 @@ case class GradientDescent[In[_], Out[_]] (
     }
 
     def totalCost(inst: subspace.Type[A]): A =
-      costFun.mean(model.applySubspaceParSeq(subspace, inst)(data.par)) +
+      costFun.mean(model.applySubspaceRDD(subspace, inst)(data)) +
         costFun.regularization[subspace.Type, A](inst)(fl, subspace.space)
 
     var inst = initialInst.asInstanceOf[subspace.Type[A]]
@@ -56,14 +57,14 @@ case class GradientDescent[In[_], Out[_]] (
     var bestCost = totalCost(best)
     val tr = gradTrans.create[subspace.Type, A]()(fl, subspace.space)
 
+    data.cache()
     for (i <- 1 to iterations) {
       var gradAcc = data
-        .grouped(chunkSize)
-        .map(samples =>
+        .mapPartitions(samples => Iterator(
           grad[A, subspace.Type](costOnSamples(samples)(_, _))(fl, subspace.space)(inst)
-        )
+        ))(ZeroFunctor.asZero(subspace.space, fl))
         .reduce(subspace.space.add(_, _))
-      gradAcc = subspace.space.div(gradAcc, fl.fromInt(data.size))
+      gradAcc = subspace.space.div(gradAcc, fl.fromLong(data.count()))
 
       val gradReg = grad[A, subspace.Type](reg(_, _))(fl, subspace.space)(inst)
       gradAcc = subspace.space.add(gradAcc, gradReg)
