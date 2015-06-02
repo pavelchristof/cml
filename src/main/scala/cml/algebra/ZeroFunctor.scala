@@ -47,11 +47,10 @@ object ZeroFunctor {
 
   implicit def compose[F[_], G[_]](implicit f: ZeroFunctor[F], g: ZeroFunctor[G]) = new Compose[F, G]
 
-  class ConstImpl[C] (default: C) extends ZeroFunctor[({type T[A] = Const[C, A]})#T] {
-    override def zero[A](implicit a: Zero[A]): Const[C, A] = Const(default)
+  class ConstImpl[C] (default: C) extends ZeroFunctor[({type T[A] = C})#T] {
+    override def zero[A](implicit a: Zero[A]): C = default
 
-    override def map[A, B](v: Const[C, A])(h: (A) => B)(implicit a: Zero[A], b: Zero[B]): Const[C, B] =
-      Const(v.getConst)
+    override def map[A, B](v: C)(h: (A) => B)(implicit a: Zero[A], b: Zero[B]): C = v
   }
 
   def const[C](default: C) = new ConstImpl(default)
