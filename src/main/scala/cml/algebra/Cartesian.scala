@@ -13,6 +13,16 @@ trait Cartesian[F[_]] extends Normed[F] {
   val dim: Int
 
   /**
+   * Bijection between keys and integers in range [0, dim-1].
+   */
+  def keyToInt(k: Key): Int
+
+  /**
+   * The inverse of keyToInt.
+   */
+  def intToKey(i: Int): Key
+
+  /**
    * Creates a new vector from a map. Coefficients for keys not in the map are zero.
    */
   final override def tabulatePartial[A](v: Map[Key, A])(implicit a: Zero[A]): F[A] =
@@ -37,6 +47,14 @@ object Cartesian {
     extends Representable.ProductBase[F, G] with Cartesian[({type T[A] = (F[A], G[A])})#T] {
     override val dim: Int = f.dim + g.dim
 
+    override def keyToInt(k: Either[f.Key, g.Key]): Int = k match {
+      case Left(i) => f.keyToInt(i)
+      case Right(i) => f.dim + g.keyToInt(i)
+    }
+
+    override def intToKey(i: Int): Either[f.Key, g.Key] =
+      if (i < f.dim) Left(f.intToKey(i)) else Right(g.intToKey(i - f.dim))
+
     override def sum[A](v: (F[A], G[A]))(implicit a: Additive[A]): A =
       a.add(f.sum(v._1), g.sum(v._2))
   }
@@ -46,6 +64,12 @@ object Cartesian {
   class Compose[F[_], G[_]] (implicit override val f: Cartesian[F], override val g: Cartesian[G])
     extends Representable.ComposeBase[F, G] with Cartesian[({type T[A] = F[G[A]]})#T] {
     override val dim: Int = f.dim * g.dim
+
+    override def keyToInt(k: (f.Key, g.Key)): Int =
+      f.keyToInt(k._1) * g.dim + g.keyToInt(k._2)
+
+    override def intToKey(i: Int): (f.Key, g.Key) =
+      (f.intToKey(i / g.dim), g.intToKey(i % g.dim))
 
     override def sum[A](v: F[G[A]])(implicit a: Additive[A]): A =
       f.sum(f.map(v)(g.sum(_)))
@@ -57,6 +81,12 @@ object Cartesian {
     type Key = Void
 
     override val dim: Int = 0
+
+    override def keyToInt(k: Void): Int =
+      throw new IllegalArgumentException
+
+    override def intToKey(i: Int): Void =
+      throw new IllegalArgumentException
 
     override def zero[A](implicit a: Zero[A]): Unit = ()
 
@@ -77,6 +107,10 @@ object Cartesian {
     type Key = Unit
 
     override val dim: Int = 1
+
+    override def keyToInt(k: Unit): Int = 0
+
+    override def intToKey(i: Int): Unit = ()
 
     override def zero[A](implicit a: Zero[A]): A = a.zero
 
@@ -105,6 +139,10 @@ object Cartesian {
     type Key = Int
 
     override val dim: Int = size()
+
+    override def keyToInt(k: Int): Int = k
+
+    override def intToKey(i: Int): Int = i
 
     override def zero[A](implicit a: Zero[A]): Vec[S, A] =
       Vec(Array.fill(dim)(a.zero))
