@@ -9,6 +9,8 @@ trait Engine extends Serializable {
   type Aug[_]
   type Context[_]
 
+  implicit def zero[A](implicit z: Zero[A]): Zero[Aug[A]]
+
   /**
    * Aug[A] is a field given that F is one.
    */

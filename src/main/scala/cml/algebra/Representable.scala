@@ -1,6 +1,7 @@
 package cml.algebra
 
 import scala.collection.immutable.HashMap
+import scala.reflect.ClassTag
 import scalaz.Scalaz._
 
 trait Representable[F[_]] extends Linear[F] with ZeroApplicative[F] {
@@ -30,6 +31,13 @@ trait Representable[F[_]] extends Linear[F] with ZeroApplicative[F] {
    * The type of possible subspaces. This allows us to constraint the possible subspaces.
    */
   type AllowedSubspace <: Subspace[F]
+
+  /**
+   * Required for Spark.
+   */
+  val subspaceClassTag: ClassTag[AllowedSubspace] = new ClassManifest[AllowedSubspace] {
+    override def runtimeClass: Class[_] = restrict(Set()).getClass
+  }
 
   /**
    * Returns a finitely-dimensional subspace of F, spanned (at least) by the unit vectors with

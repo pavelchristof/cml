@@ -144,4 +144,8 @@ object Forward extends Engine {
     val value = f(space.tabulate(i => Aug(space.index(x)(i), field.zero)), DummyImplicit.dummyImplicit)._1
     (value, grad(f)(field, space)(x))
   }
+
+  override implicit def zero[A](implicit z: Zero[A]): Zero[Aug[A]] = new Zero[Aug[A]] {
+    override val zero: Aug[A] = Aug(z.zero, z.zero)
+  }
 }

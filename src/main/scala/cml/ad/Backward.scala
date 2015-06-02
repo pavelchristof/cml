@@ -70,6 +70,10 @@ object Backward extends Engine {
     case (_, _) => Nullary()
   }
 
+  override implicit def zero[A](implicit z: Zero[A]): Zero[Aug[A]] = new Zero[Aug[A]] {
+    override val zero: Aug[A] = Aug(None, z.zero)
+  }
+
   private class AugField[A] (
     implicit f: Field[A],
     ctx: Context[A]
