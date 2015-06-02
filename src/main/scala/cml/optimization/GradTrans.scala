@@ -2,7 +2,7 @@ package cml.optimization
 
 import cml.algebra._
 
-trait GradTrans {
+trait GradTrans extends Serializable {
   def create[V[_], A]()(implicit fl: Floating[A], space: Cartesian[V]): (V[A]) => V[A]
 
   def andThen(tr: GradTrans): GradTrans = new GradTrans {

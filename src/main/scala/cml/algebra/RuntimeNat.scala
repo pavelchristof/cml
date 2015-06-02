@@ -3,7 +3,7 @@ package cml.algebra
 import shapeless.Nat
 import shapeless.ops.nat.ToInt
 
-trait RuntimeNat {
+trait RuntimeNat extends Serializable {
   type Type <: Nat
   def apply(): ToInt[Type]
 }

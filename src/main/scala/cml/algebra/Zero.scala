@@ -2,7 +2,7 @@ package cml.algebra
 
 import scala.reflect.ClassTag
 
-trait Zero[A] extends ClassTag[A] {
+trait Zero[A] extends ClassTag[A] with Serializable {
   val zero: A
 
   override def runtimeClass: Class[_] = zero.getClass

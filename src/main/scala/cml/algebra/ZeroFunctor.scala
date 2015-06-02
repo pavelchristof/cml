@@ -5,7 +5,7 @@ import scalaz.Const
 /**
  * An endofunctor on the category of pointed types.
  */
-trait ZeroFunctor[F[_]] {
+trait ZeroFunctor[F[_]] extends Serializable {
   /**
    * Each object (A, zero : A) is mapped to an object (F[A], zero : F[A]).
    */

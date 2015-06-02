@@ -5,7 +5,7 @@ import cml.algebra._
 /**
  * Automatic differentiation engine.
  */
-trait Engine {
+trait Engine extends Serializable {
   type Aug[_]
   type Context[_]
 

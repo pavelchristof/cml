@@ -3,7 +3,7 @@ package cml.algebra
 /**
  * A cartesian subspace of F.
  */
-trait Subspace[F[_]] {
+trait Subspace[F[_]] extends Serializable {
   type Type[A]
 
   /**
