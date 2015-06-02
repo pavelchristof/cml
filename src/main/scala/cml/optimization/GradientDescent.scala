@@ -134,7 +134,7 @@ case class GradientDescent[In[_], Out[_]] (
     var bestCost = runner.totalCost(subspaceBC, data, inst)
 
     for (i <- 1 to iterations) {
-      val gradSamples = runner.gradSamples(subspaceBC, augData, inst, count).asInstanceOf[subspace.Type[A]]
+      val gradSamples = runner.gradSamples(subspaceBC, augData, count, inst).asInstanceOf[subspace.Type[A]]
       val gradReg = runner.gradReg(subspace.asInstanceOf[runner.model.space.AllowedSubspace], inst).asInstanceOf[subspace.Type[A]]
       val grad = subspace.space.add[A](gradSamples, gradReg)
       inst = subspace.space.sub[A](inst, tr(grad))
