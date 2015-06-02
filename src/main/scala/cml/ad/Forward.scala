@@ -7,6 +7,7 @@ object Forward extends Engine {
     _1: A,
     _2: A
   )
+
   type Context[A] = DummyImplicit
 
   private class AugField[A](implicit f: Field[A]) extends Field[Aug[A]] {

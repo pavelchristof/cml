@@ -172,7 +172,7 @@ object DifferentiationTest extends Properties("Differentiation") {
   )
 
   def closeEnough(x: Double, y: Double): Boolean = {
-    val eps = 0.02
+    val eps = 1e-2
     x == y || (x - y).abs <= eps * (x.abs.max(y.abs).max(eps))
   }
 
@@ -188,7 +188,7 @@ object DifferentiationTest extends Properties("Differentiation") {
         val (aVal, aDiff) = computedDeriv(x)
         val actual = aDiff
         val expected = eDiff
-        expected.isNaN || actual.isNaN || closeEnough(expected, actual) || {
+        x.abs > 1e7 || x.abs < 1e-7 || expected.isNaN || actual.isNaN || closeEnough(expected, actual) || {
           println(s"Expected: $expected, actual $actual")
           false
         }

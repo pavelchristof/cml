@@ -1,77 +1,122 @@
 package cml.ad
 
 import cml.algebra._
+import scala.collection.mutable
 import scala.collection.mutable.Builder
 
 object Backward extends Engine {
-  case class Aug[A] (
-    _1: Option[Int],
-    _2: A
-  )
+  type Aug[A] = (Option[Int], A)
 
-  sealed abstract class Cell[A]
+  type Context[A] = TapeBuilder[A]
 
-  case class Nullary[A] () extends Cell[A]
-
-  case class Unary[A] (
-    i: Int,
-    d: A
-  ) extends Cell[A]
-
-  case class Binary[A] (
-    i1: Int, i2: Int,
-    d1: A, d2: A
-  ) extends Cell[A]
-
-  case class Context[A] (
-    tape: Builder[Cell[A], Array[Cell[A]]],
-    var size: Int
-  )
-
-  private def newContext[A]: Context[A] = {
-    val tape = Array.newBuilder[Cell[A]]
-    tape.sizeHint(128)
-    tape += Nullary()
-    Context(tape, 1)
+  class Tape[A] (
+    val values: Array[A],
+    val indices: Array[Int],
+    val size: Int
+  ) {
+    def apply(i: Int): (Int, A, Int, A) =
+      (indices(2*i), values(2*i), indices(2*i+1), values(2*i+1))
   }
 
-  private def newContextV[A, V[_]](implicit space: Cartesian[V]): Context[A] = {
-    val tape = Array.newBuilder[Cell[A]]
-    val n = space.dim
-    tape.sizeHint(4 * n)
+  class TapeBuilder[A] (implicit a: Zero[A]) {
+    val values: mutable.Builder[A, Array[A]] = Array.newBuilder
+    val indices: mutable.Builder[Int, Array[Int]] = Array.newBuilder
+    var index: Int = 0
+
+    def newNullary(): Int = {
+      indices += -1
+      indices += -1
+      values += a.zero
+      values += a.zero
+      val r = index
+      index += 1
+      r
+    }
+
+    def newUnary(i: Int, d: A): Int = {
+      indices += i
+      indices += -1
+      values += d
+      values += a.zero
+      val r = index
+      index += 1
+      r
+    }
+
+    def newBinary(i1: Int, i2: Int, d1: A, d2: A): Int = {
+      indices += i1
+      indices += i2
+      values += d1
+      values += d2
+      val r = index
+      index += 1
+      r
+    }
+
+    def sizeHint(size: Int) = {
+      values.sizeHint(size * 2)
+      indices.sizeHint(size * 2)
+    }
+
+    def result(): Tape[A] =
+      new Tape[A](values.result(), indices.result(), index)
+  }
+
+  private def tapeBuilder[A](implicit a: Zero[A]): TapeBuilder[A] = {
+    val tape = new TapeBuilder[A]()
+    tape.sizeHint(1024 * 64)
+    tape.newNullary()
+    tape
+  }
+
+  private def tapeBuilderVec[A, V[_]](implicit a: Zero[A], space: Cartesian[V]): TapeBuilder[A] = {
+    val tape = new TapeBuilder[A]()
+    tape.sizeHint(space.dim * 4)
     var i = 0
-    val e = Nullary[A]()
-    while (i < n) {
-      tape += e
+    while (i < space.dim) {
+      tape.newNullary()
       i += 1
     }
-    Context(tape, n)
+    tape
   }
 
-  def newCell[A](cell: Cell[A])(implicit ctx: Context[A]): Option[Int] = cell match {
-    case Nullary() => None
-    case _ => {
-      val i = ctx.size
-      ctx.size += 1
-      ctx.tape += cell
-      Some(i)
+  private def unary[A](i: Option[Int], d: A)(implicit tape: TapeBuilder[A]): Option[Int] = i match {
+    case Some(n) => Some(tape.newUnary(n, d))
+    case _ => None
+  }
+
+  private def binary[A](i1: Option[Int], i2: Option[Int], d1: A, d2: A)
+      (implicit tape: TapeBuilder[A]): Option[Int] = (i1, i2) match {
+    case (Some(n), Some(m)) => Some(tape.newBinary(n, m, d1, d2))
+    case (Some(n), _) => Some(tape.newUnary(n, d1))
+    case (_, Some(m)) => Some(tape.newUnary(m, d2))
+    case (_, _) => None
+  }
+
+  private def backpropagate[A](out: Int, b: TapeBuilder[A])(implicit a: AbelianRing[A]): Array[A] = {
+    val tape = b.result()
+    val arr = Array.fill[A](tape.size)(a.zero)
+    arr(out) = a.one
+
+    var i = tape.size - 1
+    while (i >= 0) {
+      tape(i) match {
+        case (-1, _, _, _) => ()
+        case (j, d, -1, _) => arr(j) = a.add(arr(j), a.mul(d, arr(i)))
+        case (j1, d1, j2, d2) => {
+          val d = arr(i)
+          arr(j1) = a.add(arr(j1), a.mul(d1, d))
+          arr(j2) = a.add(arr(j2), a.mul(d2, d))
+        }
+      }
+      i -= 1
     }
-  }
 
-  def unary[A](i: Option[Int], d: A): Cell[A] = i match {
-    case Some(n) => Unary(n, d)
-    case _ => Nullary()
-  }
-
-  def binary[A](i1: Option[Int], i2: Option[Int], d1: A, d2: A): Cell[A] = (i1, i2) match {
-    case (Some(n), Some(m)) => Binary(n, m, d1, d2)
-    case (Some(n), _) => Unary(n, d1)
-    case (_, Some(m)) => Unary(m, d2)
-    case (_, _) => Nullary()
+    arr
   }
 
   override implicit def zero[A](implicit z: Zero[A]): Zero[Aug[A]] = new Zero[Aug[A]] {
-    override val zero: Aug[A] = Aug(None, z.zero)
+    override val zero: Aug[A] = (None, z.zero)
   }
 
   private class AugField[A] (
@@ -80,24 +125,24 @@ object Backward extends Engine {
   ) extends Field[Aug[A]] {
     import f.fieldSyntax._
 
-    override val zero: Aug[A] = Aug(None, _0)
-    override val one: Aug[A] = Aug(None, _1)
+    override val zero: Aug[A] = (None, _0)
+    override val one: Aug[A] = (None, _1)
 
     override def add(x: Aug[A], y: Aug[A]): Aug[A] =
-      Aug(newCell(binary(x._1, y._1, _1, _1)), x._2 + y._2)
+      (binary(x._1, y._1, _1, _1), x._2 + y._2)
     override def neg(x: Aug[A]): Aug[A] =
-      Aug(newCell(unary(x._1, -_1)), -x._2)
+      (unary(x._1, -_1), -x._2)
     override def sub(x: Aug[A], y: Aug[A]): Aug[A] =
-      Aug(newCell(binary(x._1, y._1, _1, -_1)), x._2 - y._2)
+      (binary(x._1, y._1, _1, -_1), x._2 - y._2)
 
     override def mul(x: Aug[A], y: Aug[A]): Aug[A] =
-      Aug(newCell(binary(x._1, y._1, y._2, x._2)), x._2 * y._2)
+      (binary(x._1, y._1, y._2, x._2), x._2 * y._2)
     override def inv(x: Aug[A]): Aug[A] =
-      Aug(newCell(unary(x._1, -f.inv(x._2.square))), f.inv(x._2))
+      (unary(x._1, -f.inv(x._2.square)), f.inv(x._2))
     override def div(x: Aug[A], y: Aug[A]): Aug[A] =
-      Aug(newCell(binary(x._1, y._1, f.inv(y._2), -x._2 / y._2.square)), x._2 / y._2)
+      (binary(x._1, y._1, f.inv(y._2), -x._2 / y._2.square), x._2 / y._2)
 
-    override def fromInt(n: Int): Aug[A] = Aug(None, f.fromInt(n))
+    override def fromInt(n: Int): Aug[A] = (None, f.fromInt(n))
   }
 
   private class AugAnalytic[A] (
@@ -107,41 +152,41 @@ object Backward extends Engine {
     import an.analyticSyntax._
 
     override def abs(x: Aug[A]): Aug[A] =
-      Aug(newCell(unary(x._1, x._2.signum)), x._2.abs)
+      (unary(x._1, x._2.signum), x._2.abs)
     override def signum(x: Aug[A]): Aug[A] =
-      Aug(newCell(unary(x._1, _0)), x._2.signum)
+      (unary(x._1, _0), x._2.signum)
 
     override def exp(x: Aug[A]): Aug[A] =
-      Aug(newCell(unary(x._1, x._2.exp)), x._2.exp)
+      (unary(x._1, x._2.exp), x._2.exp)
     override def log(x: Aug[A]): Aug[A] =
-      Aug(newCell(unary(x._1, x._2.inv)), x._2.log)
+      (unary(x._1, x._2.inv), x._2.log)
 
     override def sqrt(x: Aug[A]): Aug[A] =
-      Aug(newCell(unary(x._1, (_2 * x._2.sqrt).inv)), x._2.sqrt)
+      (unary(x._1, (_2 * x._2.sqrt).inv), x._2.sqrt)
 
     override def sin(x: Aug[A]): Aug[A] =
-      Aug(newCell(unary(x._1, x._2.cos)), x._2.sin)
+      (unary(x._1, x._2.cos), x._2.sin)
     override def cos(x: Aug[A]): Aug[A] =
-      Aug(newCell(unary(x._1, -x._2.sin)), x._2.cos)
+      (unary(x._1, -x._2.sin), x._2.cos)
     override def tan(x: Aug[A]): Aug[A] =
-      Aug(newCell(unary(x._1, _2 / (_1 + (x._2 + x._2).cos))), x._2.tan)
+      (unary(x._1, _2 / (_1 + (x._2 + x._2).cos)), x._2.tan)
 
     override def asin(x: Aug[A]): Aug[A] =
-      Aug(newCell(unary(x._1, (_1 - x._2.square).sqrt.inv)), x._2.asin)
+      (unary(x._1, (_1 - x._2.square).sqrt.inv), x._2.asin)
     override def acos(x: Aug[A]): Aug[A] =
-      Aug(newCell(unary(x._1, -(_1 - x._2.square).sqrt.inv)), x._2.acos)
+      (unary(x._1, -(_1 - x._2.square).sqrt.inv), x._2.acos)
     override def atan(x: Aug[A]): Aug[A] =
-      Aug(newCell(unary(x._1, (_1 + x._2.square).inv)), x._2.atan)
+      (unary(x._1, (_1 + x._2.square).inv), x._2.atan)
 
     override def sinh(x: Aug[A]): Aug[A] =
-      Aug(newCell(unary(x._1, x._2.cosh)), x._2.sinh)
+      (unary(x._1, x._2.cosh), x._2.sinh)
     override def cosh(x: Aug[A]): Aug[A] =
-      Aug(newCell(unary(x._1, x._2.sinh)), x._2.cosh)
+      (unary(x._1, x._2.sinh), x._2.cosh)
     override def tanh(x: Aug[A]): Aug[A] =
-      Aug(newCell(unary(x._1, (_4 * x._2.cosh) / ((x._2 + x._2).cosh + _1).square)), x._2.tanh)
+      (unary(x._1, (_4 * x._2.cosh) / ((x._2 + x._2).cosh + _1).square), x._2.tanh)
 
-    override def fromFloat(x: Float): Aug[A] = Aug(None, an.fromFloat(x))
-    override def fromDouble(x: Double): Aug[A] = Aug(None, an.fromDouble(x))
+    override def fromFloat(x: Float): Aug[A] = (None, an.fromFloat(x))
+    override def fromDouble(x: Double): Aug[A] = (None, an.fromDouble(x))
   }
 
   /**
@@ -157,26 +202,7 @@ object Backward extends Engine {
   /**
    * Injects a constant value into the augmented field.
    */
-  override def constant[A](x: A)(implicit field: Field[A]): Aug[A] = Aug(None, x)
-
-  private def backpropagate[A](out: Int, ctx: Context[A])(implicit f: Field[A]): Array[A] = {
-    import f.fieldSyntax._
-    val tape = ctx.tape.result()
-    val arr = Array.fill[A](ctx.size)(_0)
-    arr(out) = _1
-    for (i <- (ctx.size - 1).to(0, -1)) {
-      tape(i) match {
-        case Nullary() => ()
-        case Unary(j, d) => arr(j) = arr(j) + d * arr(i)
-        case Binary(j1, j2, d1, d2) => {
-          val d = arr(i)
-          arr(j1) += d1 * d
-          arr(j2) += d2 * d
-        }
-      }
-    }
-    arr
-  }
+  override def constant[A](x: A)(implicit field: Field[A]): Aug[A] = (None, x)
 
   /**
    * Differentiates a function.
@@ -189,8 +215,8 @@ object Backward extends Engine {
    */
   override def diffWithValue[A](f: (Aug[A], Context[A]) => Aug[A])
       (implicit field: Field[A]): (A) => (A, A) = (x: A) => {
-    val ctx = newContext[A]
-    val res = f(Aug(Some(0), x), ctx)
+    val ctx = tapeBuilder[A]
+    val res = f((Some(0), x), ctx)
     res._1 match {
       case Some(i) => {
         val arr = backpropagate(i, ctx)
@@ -200,21 +226,16 @@ object Backward extends Engine {
     }
   }
 
-  private def makeInput[A, V[_]](v: V[A], ctx: Context[A])(implicit space: Cartesian[V], f: Field[A]): V[Aug[A]] = {
-    var i = 0
-    space.tabulate(index => {
-      val r = Aug(Some(i), space.index(v)(index))
-      i += 1
-      r
-    })(field[A](f, ctx))
+  private def makeInput[A, V[_]](v: V[A], tape: TapeBuilder[A])
+      (implicit space: Cartesian[V], f: Field[A]): V[Aug[A]] = {
+    space.tabulate[Aug[A]](key => {
+      (Some(space.keyToInt(key)), space.index(v)(key))
+    })(field[A](f, tape))
   }
 
   private def makeGrad[A, V[_]](arr: Array[A])(implicit space: Cartesian[V], a: Additive[A]): V[A] = {
-    var i = 0
-    space.tabulate(_ => {
-      val r = arr(i)
-      i += 1
-      r
+    space.tabulate(key => {
+      arr(space.keyToInt(key))
     })
   }
 
@@ -230,11 +251,11 @@ object Backward extends Engine {
    */
   override def gradWithValue[A, V[_]](f: (V[Aug[A]], Context[A]) => Aug[A])
       (implicit field: Field[A], space: Cartesian[V]): (V[A]) => (A, V[A]) = (v: V[A]) => {
-    val ctx = newContextV[A, V]
-    val res = f(makeInput(v, ctx), ctx)
+    val tape = tapeBuilderVec[A, V]
+    val res = f(makeInput(v, tape), tape)
     res._1 match {
       case Some(j) => {
-        val arr = backpropagate(j, ctx)
+        val arr = backpropagate(j, tape)
         (res._2, makeGrad(arr))
       }
       case None => (res._2, space.zero)
