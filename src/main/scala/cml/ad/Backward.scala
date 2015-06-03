@@ -2,7 +2,6 @@ package cml.ad
 
 import cml.algebra._
 import scala.collection.mutable
-import scala.collection.mutable.Builder
 
 object Backward extends Engine {
   type Aug[A] = (Option[Int], A)
@@ -71,7 +70,7 @@ object Backward extends Engine {
 
   private def tapeBuilderVec[A, V[_]](implicit a: Zero[A], space: Cartesian[V]): TapeBuilder[A] = {
     val tape = new TapeBuilder[A]()
-    tape.sizeHint(space.dim * 4)
+    tape.sizeHint(space.dim * 2)
     var i = 0
     while (i < space.dim) {
       tape.newNullary()
