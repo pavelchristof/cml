@@ -14,7 +14,7 @@ trait Additive1[F[_]] extends ZeroApply[F] {
 
 object Additive1 {
   class AsAdditive[F[_], A] (implicit f: Additive1[F], a: Additive[A])
-    extends ZeroFunctor.AsZero[F, A] with Additive[F[A]] {
+    extends ZeroEndofunctor.AsZero[F, A] with Additive[F[A]] {
     override def add(x: F[A], y: F[A]): F[A] = f.add(x, y)
     override def sub(x: F[A], y: F[A]): F[A] = f.sub(x, y)
     override def neg(x: F[A]): F[A] = f.neg(x)

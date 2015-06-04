@@ -8,7 +8,7 @@ trait ZeroApplicative[V[_]] extends ZeroApply[V] {
 }
 
 object ZeroApplicative {
-  import ZeroFunctor.asZero
+  import ZeroEndofunctor.asZero
 
   class Product[F[_], G[_]] (implicit f: ZeroApplicative[F], g: ZeroApplicative[G])
     extends ZeroApply.Product[F, G] with ZeroApplicative[({type T[A] = (F[A], G[A])})#T] {

@@ -13,7 +13,7 @@ case class LinearMap[In[_], Out[_]] (
 
   override implicit val space = Cartesian.compose[Out, In](outSpace, inSpace)
 
-  import ZeroFunctor.asZero
+  import ZeroEndofunctor.asZero
 
   override def apply[A](inst: Type[A])(input: In[A])(implicit a: Analytic[A]): Out[A] =
     outSpace.map(inst)(inSpace.dot(input, _))

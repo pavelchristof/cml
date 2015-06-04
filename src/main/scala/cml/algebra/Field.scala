@@ -53,7 +53,7 @@ trait Field[T] extends AbelianRing[T] {
     }
   }
 
-  val fieldSyntax = new FieldSyntax[T] { def F = Field.this }
+  @transient lazy val fieldSyntax = new FieldSyntax[T] { def F = Field.this }
 }
 
 object Field {

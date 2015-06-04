@@ -14,7 +14,7 @@ final case class HashMap[K, V[_]] (implicit
   override implicit val space =
     Representable.compose[({type T[A] = HashMapWithDefault[K, A]})#T, V](mapSpace, valueSpace)
 
-  import ZeroFunctor.asZero
+  import ZeroEndofunctor.asZero
 
   def apply[A](inst: Type[A])(input: K)(implicit field: Analytic[A]): V[A] =
     mapSpace.index(inst)(input)

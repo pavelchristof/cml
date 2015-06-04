@@ -41,7 +41,7 @@ trait Cartesian[F[_]] extends Normed[F] {
 }
 
 object Cartesian {
-  import ZeroFunctor.asZero
+  import ZeroEndofunctor.asZero
 
   class Product[F[_], G[_]] (implicit override val f: Cartesian[F], override val g: Cartesian[G])
     extends Representable.ProductBase[F, G] with Cartesian[({type T[A] = (F[A], G[A])})#T] {

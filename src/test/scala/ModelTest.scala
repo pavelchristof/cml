@@ -17,7 +17,7 @@ object ModelTest extends App {
   type VecIn[A] = A
   type VecHidden[A] = Vec[vecSize.Type, A]
   type VecOut[A] = A
-  type VecTree[A] = Tree[VecIn[A]]
+  type VecTree[A] = BinaryTree[VecIn[A]]
 
   implicit val vecHiddenSpace = Cartesian.vec(vecSize())
 

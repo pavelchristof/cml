@@ -1,6 +1,6 @@
 package cml.algebra
 
-trait ZeroApply[V[_]] extends ZeroFunctor[V] {
+trait ZeroApply[V[_]] extends ZeroEndofunctor[V] {
   /**
    * Zips two "vectors".
    */
@@ -20,10 +20,10 @@ trait ZeroApply[V[_]] extends ZeroFunctor[V] {
 }
 
 object ZeroApply {
-  import ZeroFunctor.asZero
+  import ZeroEndofunctor.asZero
 
   class Product[F[_], G[_]] (implicit f: ZeroApply[F], g: ZeroApply[G])
-    extends ZeroFunctor.Product[F, G] with ZeroApply[({type T[A] = (F[A], G[A])})#T] {
+    extends ZeroEndofunctor.Product[F, G] with ZeroApply[({type T[A] = (F[A], G[A])})#T] {
     override def zip[A, B](x: (F[A], G[A]), y: (F[B], G[B]))
         (implicit a: Zero[A], b: Zero[B]): (F[(A, B)], G[(A, B)]) =
       (f.zip(x._1, y._1), g.zip(x._2, y._2))
@@ -40,7 +40,7 @@ object ZeroApply {
   implicit def product[F[_], G[_]](implicit f: ZeroApply[F], g: ZeroApply[G]) = new Product[F, G]
 
   class Compose[F[_], G[_]] (implicit f: ZeroApply[F], g: ZeroApply[G])
-    extends ZeroFunctor.Compose[F, G] with ZeroApply[({type T[A] = F[G[A]]})#T] {
+    extends ZeroEndofunctor.Compose[F, G] with ZeroApply[({type T[A] = F[G[A]]})#T] {
     override def zip[A, B](x: F[G[A]], y: F[G[B]])(implicit a: Zero[A], b: Zero[B]): F[G[(A, B)]] =
       f.map(f.zip(x, y))(ab => g.zip(ab._1, ab._2))
 

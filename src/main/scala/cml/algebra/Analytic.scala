@@ -28,5 +28,5 @@ trait Analytic[T] extends Field[T] {
   def fromFloat(x: Float): T
   def fromDouble(x: Double): T
 
-  val analyticSyntax = new AnalyticSyntax[T] { def F = Analytic.this }
+  @transient lazy val analyticSyntax = new AnalyticSyntax[T] { def F = Analytic.this }
 }

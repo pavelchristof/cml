@@ -13,3 +13,9 @@ trait GradTrans extends Serializable {
     }
   }
 }
+
+object GradTrans {
+  object Identity extends GradTrans {
+    override def create[V[_], A]()(implicit fl: Floating[A], space: Cartesian[V]): (V[A]) => V[A] = identity
+  }
+}

@@ -14,7 +14,7 @@ trait ToAdditiveOps {
   implicit def ToAdditiveOps[F](x: F)(implicit f: Additive[F]): AdditiveOps[F] = new AdditiveOps[F](x)
 }
 
-trait AdditiveSyntax[F] extends Serializable {
+trait AdditiveSyntax[F] {
   implicit def ToAdditiveOps(v: F): AdditiveOps[F] = new AdditiveOps[F](v)(AdditiveSyntax.this.F)
 
   def _0: F = F.zero

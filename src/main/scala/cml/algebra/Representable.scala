@@ -57,7 +57,7 @@ trait Representable[F[_]] extends Linear[F] with ZeroApplicative[F] {
 }
 
 object Representable {
-  import ZeroFunctor.asZero
+  import ZeroEndofunctor.asZero
 
   abstract class ProductBase[F[_], G[_]] (implicit val f: Representable[F], val g: Representable[G])
     extends Linear.Product[F, G] with Representable[({type T[A] = (F[A], G[A])})#T] {
