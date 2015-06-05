@@ -18,7 +18,7 @@ object ModelTest extends App {
   type VecHidden[A] = Vec[vecSize.Type, A]
   type VecOut[A] = A
 
-  implicit val vecHiddenSpace = Cartesian.vec(vecSize())
+  implicit val vecHiddenSpace = Vec.cartesian(vecSize())
 
   val model = Chain4(
     AffineMap[VecIn, VecHidden],
