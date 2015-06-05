@@ -1,8 +1,6 @@
 package cml.models
 
 import cml._
-import cml.algebra.Representable.HashMapWithDefault
-import cml.algebra.Subspace.Compose
 import cml.algebra._
 
 import scala.reflect.ClassTag
@@ -11,11 +9,11 @@ final case class HashMap[K, V[_]] (implicit
   valueSpace: Cartesian[V],
   classTag: ClassTag[K]
 ) extends Model[({type T[A] = K})#T, V] {
-  override type Type[A] = HashMapWithDefault[K, V[A]]
+  override type Type[A] = TotalMap[K, V[A]]
 
-  implicit val mapSpace = Representable.hashMap[K](classTag)
+  implicit val mapSpace = TotalMap.representable(classTag)
   override implicit val space =
-    Representable.compose[({type T[A] = HashMapWithDefault[K, A]})#T, V](mapSpace, valueSpace)
+    Representable.compose[({type T[A] = TotalMap[K, A]})#T, V](mapSpace, valueSpace)
 
   import ZeroEndofunctor.asZero
 

@@ -1,5 +1,6 @@
 package cml.algebra
 
+import cml.algebra.Subspace.WholeSpace
 import shapeless.Nat
 import shapeless.ops.nat.ToInt
 
@@ -91,7 +92,7 @@ object Cartesian {
 
     override def map[A, B](v: Unit)(h: (A) => B)(implicit a: Zero[A], b: Zero[B]): Unit = ()
 
-    override def restrict(keys: => Set[Void]): Cartesian[({type T[A] = Unit})#T] = this
+    override def restrict(keys: => Set[Void]) = new WholeSpace[({type T[A] = Unit})#T]()(this)
   }
 
   implicit object Scalar extends Cartesian[({type T[A] = A})#T] {
@@ -124,6 +125,6 @@ object Cartesian {
 
     override def sum[A](v: A)(implicit a: Additive[A]): A = v
 
-    override def restrict(keys: => Set[Unit]): Cartesian[({type T[A] = A})#T] = this
+    override def restrict(keys: => Set[Unit]) = new WholeSpace[({type T[A] = A})#T]()(this)
   }
 }

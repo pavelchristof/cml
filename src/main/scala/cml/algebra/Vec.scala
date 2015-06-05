@@ -1,5 +1,6 @@
 package cml.algebra
 
+import cml.algebra.Subspace.WholeSpace
 import shapeless.Nat
 import shapeless.ops.nat.ToInt
 
@@ -50,7 +51,7 @@ object Vec {
     override def sum[A](v: Vec[S, A])(implicit a: Additive[A]): A =
       v.get.fold(a.zero)(a.add)
 
-    override def restrict(keys: => Set[Int]): Cartesian[({type T[a] = Vec[S, a]})#T] = this
+    override def restrict(keys: => Set[Int]) = new WholeSpace[({type T[a] = Vec[S, a]})#T]()(this)
   }
 
   implicit def cartesian[S <: Nat](implicit toInt: ToInt[S]) = new CartesianImpl[S](toInt)
