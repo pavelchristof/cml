@@ -1,9 +1,11 @@
 package cml
 
 import cml.algebra.{Zero, ZeroFunctor}
+import com.esotericsoftware.kryo.DefaultSerializer
 
 import scalaz._
 
+@DefaultSerializer(classOf[serializers.TreeSerializer])
 sealed trait Tree[+A, +B] extends Serializable {
   val accum: A
 
@@ -18,6 +20,7 @@ sealed trait Tree[+A, +B] extends Serializable {
   def zip[C, D](t: Tree[C, D]): Tree[(A, C), (B, D)]
 }
 
+@DefaultSerializer(classOf[serializers.TreeSerializer])
 case class Node[+A, +B] (
   left: Tree[A, B],
   accum: A,
@@ -35,6 +38,7 @@ case class Node[+A, +B] (
   }
 }
 
+@DefaultSerializer(classOf[serializers.TreeSerializer])
 case class Leaf[+A, +B] (
   accum: A,
   value: B
