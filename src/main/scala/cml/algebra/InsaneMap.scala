@@ -87,11 +87,30 @@ object InsaneMap {
     }
 
     override def index[A](v: InsaneMap[K, A])(k: K)(implicit a: Zero[A]): A = {
-      val i = util.Arrays.binarySearch(v.hashes, k.hashCode())
+      indexOf(v.keys, v.hashes, k, k.hashCode()) match {
+        case Some(i) => v.values(i)
+        case None => a.zero
+      }
+    }
+
+    def indexOf(keys: Vector[K], hashes: Array[Int], key: K, hash: Int): Option[Int] = {
+      var i = util.Arrays.binarySearch(hashes, hash)
       if (i >= 0) {
-        v.values(i)
+        var found = false
+        while (!found && i < hashes.length && hash == hashes(i)) {
+          if (key == keys(i)) {
+            found = true
+          } else {
+            i += 1
+          }
+        }
+        if (found) {
+          Some(i)
+        } else {
+          None
+        }
       } else {
-        a.zero
+        None
       }
     }
 
@@ -108,42 +127,31 @@ object InsaneMap {
       s
     }
 
-    override def restrict(keys: => Set[K]) = new Subspace[({type T[A] = InsaneMap[K, A]})#T] {
+    override def restrict(keySet: => Set[K]) = new Subspace[({type T[A] = InsaneMap[K, A]})#T] {
       override type Type[A] = InsaneMap[K, A]
 
-      val keyArray = (keys ++ allKeys).toVector
-      val allHashes = {
-        val a = keyArray.map(_.hashCode()).toArray
-        util.Arrays.sort(a)
-        a
+      val (allKeys, allHashes) = {
+        val (keys, hashes) = keySet.intersect(CartesianInst.this.allKeys.toSet)
+          .map(k => (k, k.hashCode())).toSeq.sortBy(_._2).unzip
+        (keys.toVector, hashes.toArray)
       }
 
       override def inject[A](v: InsaneMap[K, A])(implicit a: Zero[A]): InsaneMap[K, A] = v
 
       override def project[A](v: InsaneMap[K, A])(implicit a: Zero[A]): InsaneMap[K, A] = {
-        val keys = Vector.newBuilder[K]
-        val hashes = Array.newBuilder[Int]
-        val values = Array.newBuilder[A]
-        val n = v.hashes.length
-
-        keys.sizeHint(n)
-        hashes.sizeHint(n)
-        values.sizeHint(n)
-
+        val values = new Array[A](allKeys.size)
         var i = 0
-        while (i < n) {
-          if (util.Arrays.binarySearch(allHashes, v.hashes(i)) >= 0) {
-            keys += v.keys(i)
-            hashes += v.hashes(i)
-            values += v.values(i)
+        while (i < allKeys.size) {
+          values(i) = indexOf(v.keys, v.hashes, allKeys(i), allHashes(i)) match {
+            case Some(j) => v.values(j)
+            case None => a.zero
           }
           i += 1
         }
-
-        InsaneMap(keys.result(), hashes.result(), values.result())
+        InsaneMap(allKeys, allHashes, values)
       }
 
-      override implicit val space: Cartesian[Type] = CartesianInst(keyArray)
+      override implicit val space: Cartesian[Type] = CartesianInst(allKeys)
     }
   }
 }

@@ -81,14 +81,13 @@ object TotalMap {
     }
 
     override def index[A](v: TotalMap[K, A])(k: K)(implicit a: Zero[A]): A = {
-      indexOf(v.keys, v.hashes, k) match {
+      indexOf(v.keys, v.hashes, k, k.hashCode()) match {
         case Some(i) => v.values(i)
         case None => v.default(k)
       }
     }
 
-    def indexOf(keys: Vector[K], hashes: Array[Int], key: K): Option[Int] = {
-      val hash = key.hashCode()
+    def indexOf(keys: Vector[K], hashes: Array[Int], key: K, hash: Int): Option[Int] = {
       var i = util.Arrays.binarySearch(hashes, hash)
       if (i >= 0) {
         var found = false
@@ -118,26 +117,16 @@ object TotalMap {
       }
 
       override def project[A](v: TotalMap[K, A])(implicit a: Zero[A]): InsaneMap[K, A] = {
-        val keys = Vector.newBuilder[K]
-        val hashes = Array.newBuilder[Int]
-        val values = Array.newBuilder[A]
-        val n = v.hashes.length
-
-        keys.sizeHint(n)
-        hashes.sizeHint(n)
-        values.sizeHint(n)
-
+        val values = new Array[A](allKeys.size)
         var i = 0
-        while (i < n) {
-          if (util.Arrays.binarySearch(allHashes, v.hashes(i)) >= 0) {
-            keys += v.keys(i)
-            hashes += v.hashes(i)
-            values += v.values(i)
+        while (i < allKeys.size) {
+          values(i) = indexOf(v.keys, v.hashes, allKeys(i), allHashes(i)) match {
+            case Some(j) => v.values(j)
+            case None => v.default(allKeys(i))
           }
           i += 1
         }
-
-        InsaneMap(keys.result(), hashes.result(), values.result())
+        InsaneMap(allKeys, allHashes, values)
       }
 
       override def inject[A](v: InsaneMap[K, A])(implicit a: Zero[A]): TotalMap[K, A] = {
