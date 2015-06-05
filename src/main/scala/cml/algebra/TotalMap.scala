@@ -118,34 +118,30 @@ object TotalMap {
       }
 
       override def project[A](v: TotalMap[K, A])(implicit a: Zero[A]): InsaneMap[K, A] = {
+        val keys = Vector.newBuilder[K]
         val hashes = Array.newBuilder[Int]
         val values = Array.newBuilder[A]
         val n = v.hashes.length
+
+        keys.sizeHint(n)
         hashes.sizeHint(n)
         values.sizeHint(n)
 
         var i = 0
         while (i < n) {
-          if (indexOf(allKeys, allHashes, v.keys(i)).isDefined) {
+          if (util.Arrays.binarySearch(allHashes, v.hashes(i)) >= 0) {
+            keys += v.keys(i)
             hashes += v.hashes(i)
             values += v.values(i)
           }
           i += 1
         }
 
-        InsaneMap(hashes.result(), values.result())
+        InsaneMap(keys.result(), hashes.result(), values.result())
       }
 
       override def inject[A](v: InsaneMap[K, A])(implicit a: Zero[A]): TotalMap[K, A] = {
-        val keys = Vector.newBuilder[K]
-
-        var i = 0
-        while (i < v.hashes.length) {
-          keys += allKeys(util.Arrays.binarySearch(allHashes, v.hashes(i)))
-          i += 1
-        }
-
-        TotalMap(keys.result(), v.hashes, v.values, _ => a.zero)
+        TotalMap(v.keys, v.hashes, v.values, _ => a.zero)
       }
 
       override implicit val space: Cartesian[Type] =
