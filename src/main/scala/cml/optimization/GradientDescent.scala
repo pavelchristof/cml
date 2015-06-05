@@ -2,90 +2,7 @@ package cml.optimization
 
 import cml._
 import cml.algebra._
-import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.rdd.RDD
-
-case class SparkGD[In[_], Out[_], A](
-  modelBC: Broadcast[Model[In, Out]],
-  costFunBC: Broadcast[CostFun[In, Out]],
-  diffEngineBC: Broadcast[ad.Engine],
-  flBC: Broadcast[Floating[A]]
-) extends Serializable {
-  @transient lazy val model = modelBC.value
-  @transient lazy val costFun = costFunBC.value
-  @transient lazy val diffEngine = diffEngineBC.value
-  @transient lazy implicit val fl = flBC.value
-
-  def gradSamples(
-    subspaceBC: Broadcast[model.space.AllowedSubspace],
-    data: RDD[(In[diffEngine.Aug[A]], Out[diffEngine.Aug[A]])],
-    count: Long,
-    instUntyped: Any // subspace.Type[A]
-  ): Any = {
-    val grad: Any = data
-      .mapPartitions[Any](samples => {
-        val subspace = subspaceBC.value
-        val inst = instUntyped.asInstanceOf[subspace.Type[A]]
-
-        val grad = diffEngine.grad[A, subspace.Type]((x, ctx) => {
-          implicit val a = diffEngine.analytic(fl, ctx)
-          samples
-            .map(sample => Sample(
-              input = sample._1,
-              expected = sample._2,
-              actual = model.applySubspace(subspace, x)(sample._1)
-            ))
-            .map(costFun.scoreSample(_))
-            .fold(a.zero)(a.add(_, _))
-        })(fl, subspace.space)(inst)
-
-        Iterator(grad)
-      })
-      .reduce((a, b) => {
-        val subspace = subspaceBC.value
-        subspace.space.add[A](
-          a.asInstanceOf[subspace.Type[A]],
-          b.asInstanceOf[subspace.Type[A]]
-        )
-      })
-
-    val subspace = subspaceBC.value
-    subspace.space.div[A](
-      grad.asInstanceOf[subspace.Type[A]],
-      fl.fromLong(count)
-    )
-  }
-
-  def gradReg(
-    subspace: model.space.AllowedSubspace,
-    instUntyped: Any // subspace.Type[A]
-  ): Any = {
-    val inst = instUntyped.asInstanceOf[subspace.Type[A]]
-    diffEngine.grad[A, subspace.Type]((x, ctx) =>
-      costFun.regularization(x)(diffEngine.analytic(fl, ctx), subspace.space))(fl, subspace.space)(inst)
-  }
-
-  def totalCost(
-    subspaceBC: Broadcast[model.space.AllowedSubspace],
-    data: RDD[(In[A], Out[A])],
-    instUntyped: Any // subspace.Type[A]
-  ): A = {
-    val j = data
-      .map(sample => Sample(
-        input = sample._1,
-        expected = sample._2,
-        actual = model.applySubspace(subspaceBC.value, instUntyped)(sample._1)
-      ))
-      .map(costFun.scoreSample(_))
-      .reduce(fl.add(_, _))
-
-    val subspace = subspaceBC.value
-    val inst = instUntyped.asInstanceOf[subspace.Type[A]]
-    val r = costFun.regularization(inst)(fl, subspace.space)
-
-    fl.add(j, r)
-  }
-}
 
 /**
  * Basic gradient descent.
@@ -100,53 +17,60 @@ case class GradientDescent[In[_], Out[_]] (
 ) extends Optimizer[In, Out] {
 
   def apply[A](
-    subspace: model.space.AllowedSubspace,
-    data: RDD[(In[A], Out[A])],
+    batches: RDD[Seq[(In[A], Out[A])]],
     costFun: CostFun[In, Out],
-    instUntyped: Any // subspace.Type[A]
+    initialInst: model.Type[A]
   )(implicit
     fl: Floating[A],
     cmp: Ordering[A],
     diffEngine: ad.Engine
   ): model.Type[A] = {
-    val sc = data.sparkContext
-    val runner = SparkGD[In, Out, A](
-      modelBC = sc.broadcast(model),
-      costFunBC = sc.broadcast(costFun),
-      diffEngineBC = sc.broadcast(diffEngine),
-      flBC = sc.broadcast(fl)
-    )
-    val subspaceBC = sc.broadcast(
-      subspace.asInstanceOf[runner.model.space.AllowedSubspace])(runner.model.space.subspaceClassTag)
+    import ZeroEndofunctor.asZero
 
-    // Prepare the data for differentiation.
-    implicit val z = runner.diffEngine.zero[A]
-    val augData = data.map(sample => (
-      inFunctor.map(sample._1)(runner.diffEngine.constant(_)),
-      outFunctor.map(sample._2)(runner.diffEngine.constant(_))))
-    data.cache()
-    augData.cache()
-    val count = data.count()
+    implicit val space = model.restrictRDD(batches.flatMap(identity), costFun)
+    val gradients = batches.map(data => {
+      val space = model.restrict(data, costFun)
+      println(s"Dim: ${space.dim}")
+      model.gradient(data, costFun)(space)
+    }).cache()
+    val costs = batches.map(data => model.cost(data, costFun)).cache()
+    val reg = model.reg(costFun)(space)
+    val regGrad = model.regGradient(costFun)(space)
+    val count = fl.fromLong(batches.flatMap(identity).count())
+    val tr = gradTrans.create[model.Type, A]()(fl, space)
 
-    val tr = gradTrans.create[subspace.Type, A]()(fl, subspace.space)
-    var inst = instUntyped.asInstanceOf[subspace.Type[A]]
-    var best = inst
-    var bestCost = runner.totalCost(subspaceBC, data, inst)
+    def totalCost(inst: model.Type[A]): A =
+      fl.add(
+        fl.div(costs.map(f => f(inst)).reduce(fl.add(_, _)), count),
+        reg(inst))
+
+    println(s"Model dimension: ${space.dim}")
+
+    var inst = initialInst
+    var cost = totalCost(inst)
+    var bestInst = inst
+    var bestCost = cost
 
     for (i <- 1 to iterations) {
-      val gradSamples = runner.gradSamples(subspaceBC, augData, count, inst).asInstanceOf[subspace.Type[A]]
-      val gradReg = runner.gradReg(subspace.asInstanceOf[runner.model.space.AllowedSubspace], inst).asInstanceOf[subspace.Type[A]]
-      val grad = subspace.space.add[A](gradSamples, gradReg)
-      inst = subspace.space.sub[A](inst, tr(grad))
-      val cost = runner.totalCost(subspaceBC, data, inst)
-      println(s"Iteration $i: ${cost}")
+      val gradBatches = gradients
+        .map(g => g(inst))
+        .reduce(model.space.add(_, _))
+      val gradReg = regGrad(inst)
+      val gradTotal = model.space.add(
+        model.space.div(gradBatches, count),
+        gradReg)
+
+      inst = model.space.sub(inst, tr(gradTotal))
+      cost = totalCost(inst)
+
+      println(s"Iteration $i: $cost")
 
       if (cmp.lt(cost, bestCost)) {
-        best = inst
+        bestInst = inst
         bestCost = cost
       }
     }
 
-    subspace.inject(best)
+    bestInst
   }
 }

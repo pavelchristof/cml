@@ -27,24 +27,13 @@ trait Cartesian[F[_]] extends Normed[F] {
    */
   final override def tabulatePartial[A](v: Map[Key, A])(implicit a: Zero[A]): F[A] =
     tabulate(k => v.getOrElse(k, a.zero))
-
-  /**
-   * We allow only the whole space.
-   */
-  final override type AllowedSubspace = Subspace.WholeSpace[F]
-
-  /**
-   * Returns the whole space.
-   */
-  final override def restrict(keys: => Set[Key]): Subspace.WholeSpace[F] =
-    new Subspace.WholeSpace[F]()(this)
 }
 
 object Cartesian {
   import ZeroEndofunctor.asZero
 
   class Product[F[_], G[_]] (implicit override val f: Cartesian[F], override val g: Cartesian[G])
-    extends Representable.ProductBase[F, G] with Cartesian[({type T[A] = (F[A], G[A])})#T] {
+    extends Representable.Product[F, G] with Cartesian[({type T[A] = (F[A], G[A])})#T] {
     override val dim: Int = f.dim + g.dim
 
     override def keyToInt(k: Either[f.Key, g.Key]): Int = k match {
@@ -62,7 +51,7 @@ object Cartesian {
   implicit def product[F[_], G[_]](implicit f: Cartesian[F], g: Cartesian[G]) = new Product[F, G]
 
   class Compose[F[_], G[_]] (implicit override val f: Cartesian[F], override val g: Cartesian[G])
-    extends Representable.ComposeBase[F, G] with Cartesian[({type T[A] = F[G[A]]})#T] {
+    extends Representable.Compose[F, G] with Cartesian[({type T[A] = F[G[A]]})#T] {
     override val dim: Int = f.dim * g.dim
 
     override def keyToInt(k: (f.Key, g.Key)): Int =
@@ -101,6 +90,8 @@ object Cartesian {
         (implicit a: Zero[A], b: Zero[B], c: Zero[C]): Unit = ()
 
     override def map[A, B](v: Unit)(h: (A) => B)(implicit a: Zero[A], b: Zero[B]): Unit = ()
+
+    override def restrict(keys: => Set[Void]): Cartesian[({type T[A] = Unit})#T] = this
   }
 
   implicit object Scalar extends Cartesian[({type T[A] = A})#T] {
@@ -132,6 +123,8 @@ object Cartesian {
     override def index[A](v: A)(k: Unit)(implicit a: Zero[A]): A = v
 
     override def sum[A](v: A)(implicit a: Additive[A]): A = v
+
+    override def restrict(keys: => Set[Unit]): Cartesian[({type T[A] = A})#T] = this
   }
 
   class VecImpl[S <: Nat](implicit size: ToInt[S])
@@ -173,6 +166,8 @@ object Cartesian {
 
     override def sum[A](v: Vec[S, A])(implicit a: Additive[A]): A =
       v.get.fold(a.zero)(a.add)
+
+    override def restrict(keys: => Set[Int]): Cartesian[({type T[a] = Vec[S, a]})#T] = this
   }
 
   implicit def vec[S <: Nat](implicit toInt: ToInt[S]) = new VecImpl[S]

@@ -19,8 +19,4 @@ final case class AffineMap[In[_], Out[_]] (implicit
     import ZeroEndofunctor.asZero
     outSpace.map(inst)(v => inSpace.dot(input, v._1) + v._2)
   }
-
-  override def applySubspace[A](subspace: WholeSpace[Type], inst: Any)(input: In[A])
-      (implicit a: Analytic[A]): Out[A] =
-    apply(inst.asInstanceOf[subspace.Type[A]])(input)
 }

@@ -16,8 +16,4 @@ final case class FunctorMap[F[_], U[_], V[_]] (
 
   override def apply[A](inst: Type[A])(input: F[U[A]])(implicit a: Analytic[A]): F[V[A]] =
     f.map(input)(m(inst)(_))
-
-  override def applySubspace[A](subspace: space.AllowedSubspace, inst: Any)(input: F[U[A]])
-      (implicit a: Analytic[A]): F[V[A]] =
-    f.map(input)(m.applySubspace(subspace.asInstanceOf[m.space.AllowedSubspace], inst)(_))
 }

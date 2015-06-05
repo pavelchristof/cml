@@ -17,7 +17,6 @@ object ModelTest extends App {
   type VecIn[A] = A
   type VecHidden[A] = Vec[vecSize.Type, A]
   type VecOut[A] = A
-  type VecTree[A] = BinaryTree[VecIn[A]]
 
   implicit val vecHiddenSpace = Cartesian.vec(vecSize())
 
@@ -47,10 +46,10 @@ object ModelTest extends App {
   val sc = new SparkContext(sparkConf)
 
   val data = sc.parallelize(Seq(
-    (1d, 1d),
-    (2d, 0d),
-    (3d, 1d),
-    (4d, 0d)
+    Seq((1d, 1d)),
+    Seq((2d, 0d)),
+    Seq((3d, 1d)),
+    Seq((4d, 0d))
   ))
 
   val optimizer = GradientDescent(
@@ -60,11 +59,9 @@ object ModelTest extends App {
   )
 
   var rng = new Random()
-  val subspace = optimizer.model.restrict(data, costFun)
-  val initialInst = subspace.space.tabulate(_ => rng.nextDouble() * 0.2 - 0.1)
+  val initialInst = optimizer.model.space.tabulate(_ => rng.nextDouble() * 0.2 - 0.1)
 
   val learned = optimizer[Double](
-      subspace,
       data,
       costFun,
       initialInst)

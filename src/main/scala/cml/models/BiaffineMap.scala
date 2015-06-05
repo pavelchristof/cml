@@ -17,8 +17,4 @@ final case class BiaffineMap[In1[_], In2[_], Out[_]] (implicit
 
   override def apply[F](inst: Type[F])(input: (In1[F], In2[F]))(implicit an: Analytic[F]): Out[F] =
     affineMap(biaffineMap(inst)(input._1))(input._2)
-
-  override def applySubspace[A](subspace: WholeSpace[Type], inst: Any)(input: (In1[A], In2[A]))
-      (implicit a: Analytic[A]): Out[A] =
-    apply(inst.asInstanceOf[subspace.Type[A]])(input)
 }

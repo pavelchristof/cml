@@ -2,7 +2,6 @@ package cml.algebra
 
 import scala.collection.immutable.HashMap
 import scala.reflect.ClassTag
-import scalaz.Scalaz._
 
 trait Representable[F[_]] extends Linear[F] with ZeroApplicative[F] {
   type Key
@@ -28,22 +27,10 @@ trait Representable[F[_]] extends Linear[F] with ZeroApplicative[F] {
   override def point[A](x: A)(implicit a: Zero[A]): F[A] = tabulate(_ => x)
 
   /**
-   * The type of possible subspaces. This allows us to constraint the possible subspaces.
-   */
-  type AllowedSubspace <: Subspace[F]
-
-  /**
-   * Required for Spark.
-   */
-  val subspaceClassTag: ClassTag[AllowedSubspace] = new ClassManifest[AllowedSubspace] {
-    override def runtimeClass: Class[_] = restrict(Set()).getClass
-  }
-
-  /**
    * Returns a finitely-dimensional subspace of F, spanned (at least) by the unit vectors with
    * ones at positions given by the passed key set.
    */
-  def restrict(keys: => Set[Key]): AllowedSubspace
+  def restrict(keys: => Set[Key]): Cartesian[F]
 
   /**
    * Finds out the set of keys that the given function is accessing.
@@ -83,10 +70,8 @@ object Representable {
 
   class Product[F[_], G[_]] (implicit override val f: Representable[F], override val g: Representable[G])
       extends ProductBase[F, G] {
-    override type AllowedSubspace = Subspace.Product[F, G, f.AllowedSubspace, g.AllowedSubspace]
-
-    override def restrict(keys: => Set[Key]): AllowedSubspace =
-      new Subspace.Product(
+    override def restrict(keys: => Set[Key]) =
+      Cartesian.product(
         f.restrict(keys.flatMap(_.left.toSeq)),
         g.restrict(keys.flatMap(_.right.toSeq)))
   }
@@ -116,10 +101,8 @@ object Representable {
 
   class Compose[F[_], G[_]] (implicit override val f: Representable[F], override val g: Representable[G])
     extends ComposeBase[F, G] with Representable[({type T[A] = F[G[A]]})#T] {
-    override type AllowedSubspace = Subspace.Compose[F, G, f.AllowedSubspace, g.AllowedSubspace]
-
-    override def restrict(keys: => Set[Key]): AllowedSubspace =
-      new Subspace.Compose(f.restrict(keys.map(_._1)), g.restrict(keys.map(_._2)))
+    override def restrict(keys: => Set[Key]) =
+      Cartesian.compose(f.restrict(keys.map(_._1)), g.restrict(keys.map(_._2)))
   }
 
   implicit def compose[F[_], G[_]](implicit f: Representable[F], g: Representable[G]) = new Compose[F, G]
@@ -166,7 +149,7 @@ object Representable {
     }
   }
 
-  class HashMapInst[K] extends Representable[({type T[A] = HashMapWithDefault[K, A]})#T] {
+  class HashMapInst[K : ClassTag] extends Representable[({type T[A] = HashMapWithDefault[K, A]})#T] {
     override type Key = K
 
     override def zero[A](implicit a: Zero[A]): HashMapWithDefault[K, A] =
@@ -189,28 +172,75 @@ object Representable {
     override def index[A](v: HashMapWithDefault[K, A])(k: K)(implicit a: Zero[A]): A =
       v.applyOrElse(k, v.default)
 
-    override def restrict(keys: => Set[K]): AllowedSubspace =
-      new AllowedSubspace(HashMap[K, Int](keys.zipWithIndex.toSeq : _*))
+    override def restrict(keys: => Set[K]) =
+      new RestrHashMapInst(keys.toArray, keys.zipWithIndex.toMap)
 
-    class AllowedSubspace (val keyMap: HashMap[K, Int]) extends Subspace[({type T[A] = HashMapWithDefault[K, A]})#T] {
-      val sizeNat = RuntimeNat(keyMap.size)
-
-      override type Type[A] = Vec[sizeNat.Type, A]
-
-      override implicit val space = Cartesian.vec(sizeNat())
-
-      override def project[A](v: HashMapWithDefault[K, A])(implicit a: Zero[A]): Type[A] = {
-        val arr = new Array[A](keyMap.size)
-        for ((k, i) <- keyMap) {
-          arr(i) = v.applyOrElse(k, v.default)
+    override def add[A](x: HashMapWithDefault[K, A], y: HashMapWithDefault[K, A])
+        (implicit a: Additive[A]): HashMapWithDefault[K, A] =
+      if (x.size <= y.size) {
+        var r = y.base
+        for ((k, v) <- x) {
+          r += k -> a.add(y.applyOrElse(k, y.default), v)
         }
-        Vec(arr)
+        val d1 = x.d
+        val d2 = y.d
+        HashMapWithDefault(r, new SerializableFunction[K, A] {
+          override def apply(k: K): A = a.add(d1(k), d2(k))
+        })
+      } else {
+        add(y, x)
       }
 
-      override def inject[A](u: Type[A])(implicit a: Zero[A]): HashMapWithDefault[K, A] =
-        HashMapWithDefault(keyMap.map(kv => (kv._1, u.get(kv._2))), SerializableFunction.Constant(a.zero))
+    override def sub[A](x: HashMapWithDefault[K, A], y: HashMapWithDefault[K, A])
+        (implicit a: Additive[A]): HashMapWithDefault[K, A] =
+      add(x, neg(y))
+  }
+
+  class RestrHashMapInst[K : ClassTag] (
+    keys: Array[K],
+    key2Int: Map[K, Int]
+  ) extends Cartesian[({type T[A] = HashMapWithDefault[K, A]})#T] {
+    type Key = K
+
+    override val dim: Int = key2Int.size
+
+    override def intToKey(i: Int): K = keys(i)
+
+    override def keyToInt(k: K): Int = key2Int(k)
+
+    override def zero[A](implicit a: Zero[A]): HashMapWithDefault[K, A] =
+      HashMapWithDefault(HashMap(), SerializableFunction.Constant(a.zero))
+
+    override def map[A, B](v: HashMapWithDefault[K, A])(h: (A) => B)
+        (implicit a: Zero[A], b: Zero[B]): HashMapWithDefault[K, B] =
+      v.mapValues(h)
+
+    override def apply2[A, B, C](x: HashMapWithDefault[K, A], y: HashMapWithDefault[K, B])(h: (A, B) => C)
+        (implicit a: Zero[A], b: Zero[B], c: Zero[C]): HashMapWithDefault[K, C] = {
+      val b = HashMap.newBuilder[K, C]
+      for (k <- keys) {
+        b += k -> h(x.applyOrElse(k, x.default), y.applyOrElse(k, y.default))
+      }
+      HashMapWithDefault(b.result(), SerializableFunction.Constant(c.zero))
+    }
+
+    override def tabulate[A](v: (K) => A)(implicit a: Zero[A]): HashMapWithDefault[K, A] =
+      HashMapWithDefault(HashMap(keys.map(k => (k, v(k))) : _*), SerializableFunction.Constant(a.zero))
+
+    override def index[A](v: HashMapWithDefault[K, A])(k: K)(implicit a: Zero[A]): A =
+      v.applyOrElse(k, v.default)
+
+    override def restrict(keys: => Set[K]) =
+      new RestrHashMapInst(keys.toArray, keys.zipWithIndex.toMap)
+
+    override def sum[A](v: HashMapWithDefault[K, A])(implicit a: Additive[A]): A = {
+      var s = a.zero
+      for ((k, _) <- key2Int) {
+        s = a.add(s, index(v)(k))
+      }
+      s
     }
   }
 
-  implicit def hashMap[K] = new HashMapInst[K]
+  implicit def hashMap[K : ClassTag] = new HashMapInst[K]
 }

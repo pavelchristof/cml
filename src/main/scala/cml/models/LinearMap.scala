@@ -17,7 +17,4 @@ case class LinearMap[In[_], Out[_]] (
 
   override def apply[A](inst: Type[A])(input: In[A])(implicit a: Analytic[A]): Out[A] =
     outSpace.map(inst)(inSpace.dot(input, _))
-
-  override def applySubspace[A](subspace: WholeSpace[Type], inst: Any)(input: In[A])(implicit a: Analytic[A]): Out[A] =
-    apply(inst.asInstanceOf[subspace.Type[A]])(input)
 }

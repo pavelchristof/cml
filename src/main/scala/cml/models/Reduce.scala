@@ -18,10 +18,4 @@ final case class Reduce[F[_], R[_]] (
     foldable.fold1(input)(new Semigroup[R[A]] {
       override def append(f1: R[A], f2: => R[A]): R[A] = m(inst)((f1, f2))
     })
-
-  override def applySubspace[A](subspace: space.AllowedSubspace, inst: Any)(input: F[R[A]])(implicit a: Analytic[A]): R[A] =
-    foldable.fold1(input)(new Semigroup[R[A]] {
-      override def append(f1: R[A], f2: => R[A]): R[A] =
-        m.applySubspace(subspace.asInstanceOf[m.space.AllowedSubspace], inst)((f1, f2))
-    })
 }

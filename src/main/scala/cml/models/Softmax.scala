@@ -18,8 +18,4 @@ final case class Softmax[V[_]] (
 
   override def apply[A](inst: Type[A])(input: V[A])(implicit a: Analytic[A]): V[A] =
     apply(input)
-
-  override def applySubspace[A](subspace: WholeSpace[Type], inst: Any)(input: V[A])
-      (implicit a: Analytic[A]): V[A] =
-    apply(input)
 }
