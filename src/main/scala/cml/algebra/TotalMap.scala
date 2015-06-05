@@ -1,202 +1,157 @@
 package cml.algebra
 
-import cml.algebra.Subspace.WholeSpace
+import java.util
 
-import scala.collection.immutable.HashMap
-import scala.reflect.ClassTag
-
-sealed trait TotalMap[K, A] extends Serializable {
-  def apply(k: K)(implicit a: Zero[A]): A
-  def default(implicit a: Zero[A]): (K) => A
-  def keySet: Set[K]
-}
-
-private case class DefaultMap[K, A] (
-  d: (K) => A
-) extends TotalMap[K, A] {
-  override def apply(k: K)(implicit a: Zero[A]): A = d(k)
-  override def default(implicit a: Zero[A]) = d
-  override def keySet: Set[K] = Set()
-}
-
-private case class HashMapWithDefault[K, A] (
-  hashMap: HashMap[K, A],
-  d: (K) => A
-) extends TotalMap[K, A] {
-  override def apply(k: K)(implicit a: Zero[A]): A = hashMap.applyOrElse(k, default)
-  override def default(implicit a: Zero[A]) = d
-  override def keySet: Set[K] = hashMap.keySet
-}
-
-private case class ArrayMapWithDefault[K, A] (
-  keys: Array[K],
-  ind: HashMap[K, Int],
-  array: Array[A],
-  d: (K) => A
-) extends TotalMap[K, A] {
-  override def apply(k: K)(implicit a: Zero[A]): A = ind.get(k) match {
-    case Some(i) => array(i)
-    case None => d(k)
-  }
-  override def default(implicit a: Zero[A]) = d
-  override def keySet: Set[K] = keys.toSet
-}
-
-/* private */ case class ArrayMap[K, A] (
-  keys: Array[K],
-  ind: HashMap[K, Int],
-  array: Array[A]
-) extends TotalMap[K, A] {
-  override def apply(k: K)(implicit a: Zero[A]): A = ind.get(k) match {
-    case Some(i) => array(i)
-    case None => a.zero
-  }
-  override def default(implicit a: Zero[A]) = _ => a.zero
-  override def keySet: Set[K] = keys.toSet
-}
+case class TotalMap[K, V] (
+  keys: Vector[K],
+  hashes: Array[Int],
+  values: Array[V],
+  default: (K) => V
+) extends Serializable
 
 object TotalMap {
-  implicit class RepresentableImpl[K] (classTag: ClassTag[K])
-    extends Representable[({type T[+A] = TotalMap[K, A]})#T] {
+  class RepresentableInst[K](implicit ord: Ordering[K]) extends Representable[({type T[A] = TotalMap[K, A]})#T] {
     override type Key = K
 
-    /**
-     * Each object (A, zero : A) is mapped to an object (F[A], zero : F[A]).
-     */
     override def zero[A](implicit a: Zero[A]): TotalMap[K, A] =
-      DefaultMap(SerializableFunction.Constant(a.zero))
+      TotalMap(Vector.empty, Array.empty, Array.empty, _ => a.zero)
 
-    /**
-     * Lifts a zero preserving function.
-     */
     override def map[A, B](v: TotalMap[K, A])(h: (A) => B)(implicit a: Zero[A], b: Zero[B]): TotalMap[K, B] =
-      v match {
-        case DefaultMap(d) => DefaultMap(d.andThen(h))
-        case HashMapWithDefault(hashMap, default) =>
-          HashMapWithDefault(hashMap.map(kv => kv._1 -> h(kv._2)), default.andThen(h))
-        case ArrayMapWithDefault(keys, ind, array, default) =>
-          ArrayMapWithDefault(keys, ind, array.map(h), default.andThen(h))
-        case ArrayMap(keys, ind, array) =>
-          ArrayMap(keys, ind, array.map(h))
-      }
+      TotalMap(v.keys, v.hashes, v.values.map(h), v.default.andThen(h))
 
-    /**
-     * Zips two "vectors" and applies a function pointwise.
-     */
     override def apply2[A, B, C](x: TotalMap[K, A], y: TotalMap[K, B])(h: (A, B) => C)
-        (implicit a: Zero[A], b: Zero[B], c: Zero[C]): TotalMap[K, C] =
-      (x, y) match {
-        case (DefaultMap(d1), DefaultMap(d2)) =>
-          DefaultMap(k => h(d1(k), d2(k)))
+        (implicit a: Zero[A], b: Zero[B], c: Zero[C]): TotalMap[K, C] = {
+      val keys = Vector.newBuilder[K]
+      val hashes = Array.newBuilder[Int]
+      val values = Array.newBuilder[C]
 
-        case (DefaultMap(d1), ArrayMapWithDefault(k, i, ar, d2)) => {
-          val ar2 = Array.tabulate(ar.size)(i => h(d1(k(i)), ar(i)))
-          ArrayMapWithDefault(k, i, ar2, k => h(d1(k), d2(k)))
-        }
-        case (ArrayMapWithDefault(k, i, ar, d1), DefaultMap(d2)) => {
-          val ar2 = Array.tabulate(ar.size)(i => h(ar(i), d2(k(i))))
-          ArrayMapWithDefault(k, i, ar2, k => h(d1(k), d2(k)))
-        }
+      val n = x.hashes.length
+      val m = y.hashes.length
 
-        case (DefaultMap(d1), ArrayMap(k, i, ar)) => {
-          val ar2 = Array.tabulate(ar.size)(i => h(d1(k(i)), ar(i)))
-          ArrayMapWithDefault(k, i, ar2, k => h(d1(k), b.zero))
-        }
-        case (ArrayMap(k, i, ar), DefaultMap(d2)) => {
-          val ar2 = Array.tabulate(ar.size)(i => h(ar(i), d2(k(i))))
-          ArrayMapWithDefault(k, i, ar2, k => h(a.zero, d2(k)))
-        }
+      keys.sizeHint(n.max(m))
+      hashes.sizeHint(n.max(m))
+      values.sizeHint(n.max(m))
 
-        case _ => HashMapWithDefault(
-          HashMap((x.keySet ++ y.keySet).map(k => k -> h(x(k), y(k))).toSeq : _*),
-          k => h(x.default(a)(k), y.default(b)(k)))
+      var i = 0
+      var j = 0
+
+      while (i < n && j < m) {
+        if (x.hashes(i) == y.hashes(j) && ord.equiv(x.keys(i), y.keys(j))) {
+          keys += x.keys(i)
+          hashes += x.hashes(i)
+          values += h(x.values(i), y.values(j))
+          i += 1
+          j += 1
+        } else if (x.hashes(i) < y.hashes(j) || (x.hashes(i) == y.hashes(j) && ord.lt(x.keys(i), y.keys(i)))) {
+          keys += x.keys(i)
+          hashes += x.hashes(i)
+          values += h(x.values(i), y.default(x.keys(i)))
+          i += 1
+        } else {
+          keys += y.keys(j)
+          hashes += y.hashes(j)
+          values += h(x.default(y.keys(j)), y.values(j))
+          j += 1
+        }
       }
 
-    /**
-     * Extracts the coefficient at the given key.
-     */
-    override def index[A](v: TotalMap[K, A])(k: Key)(implicit a: Zero[A]): A =
-      v(k)
-
-    /**
-     * Creates a vector with coordinates given by a function.
-     */
-    override def tabulate[A](v: (Key) => A)(implicit a: Zero[A]): TotalMap[K, A] =
-      DefaultMap(v)
-
-    /**
-     * Creates a new vector from a map. Coefficients for keys not in the map are zero.
-     */
-    override def tabulatePartial[A](v: Map[Key, A])(implicit a: Zero[A]): TotalMap[K, A] =
-      HashMapWithDefault(HashMap(v.toSeq : _*), _ => a.zero)
-
-    /**
-     * Returns a finitely-dimensional subspace of F, spanned (at least) by the unit vectors with
-     * ones at positions given by the passed key set.
-     */
-    override def restrict(keys: => Set[Key]): Subspace[({type T[A] = TotalMap[K, A]})#T] =
-      SubspaceImpl[K](keys.toArray(classTag), HashMap(keys.zipWithIndex.toSeq : _*))(classTag)
-  }
-
-  def representable[K](implicit classTag: ClassTag[K]) = new RepresentableImpl(classTag)
-
-  private case class SubspaceImpl[K] (
-    keys: Array[K],
-    indices: HashMap[K, Int]
-  ) (implicit
-    classTag: ClassTag[K]
-  ) extends Subspace[({type T[+A] = TotalMap[K, A]})#T] {
-    override type Type[A] = ArrayMap[K, A]
-
-    override def project[A](v: TotalMap[K, A])(implicit a: Zero[A]): Type[A] =
-      ArrayMap(keys, indices, Array.tabulate(keys.size)(i => v(keys(i))))
-
-    override def inject[A](v: ArrayMap[K, A])(implicit a: Zero[A]): TotalMap[K, A] = v
-
-    override implicit val space: Cartesian[Type] = CartesianImpl(keys, indices)
-  }
-
-  private case class CartesianImpl[K] (
-    keys: Array[K],
-    indices: HashMap[K, Int]
-  ) (implicit
-    classTag: ClassTag[K]
-  ) extends Cartesian[({type T[+A] = ArrayMap[K, A]})#T] {
-    override type Key = K
-
-    override val dim: Int = keys.size
-
-    override def intToKey(i: Int): K = keys(i)
-
-    override def keyToInt(k: K): Int = indices(k)
-
-    override def zero[A](implicit a: Zero[A]): ArrayMap[K, A] =
-      ArrayMap(keys, indices, Array.fill(keys.size)(a.zero))
-
-    override def map[A, B](v: ArrayMap[K, A])(h: (A) => B)(implicit a: Zero[A], b: Zero[B]): ArrayMap[K, B] =
-      ArrayMap(keys, indices, v.array.map(h))
-
-    override def apply2[A, B, C](x: ArrayMap[K, A], y: ArrayMap[K, B])(h: (A, B) => C)
-        (implicit a: Zero[A], b: Zero[B], c: Zero[C]): ArrayMap[K, C] =
-      ArrayMap(keys, indices, Array.tabulate(keys.size)(i => h(x.array(i), y.array(i))))
-
-    override def tabulate[A](v: K => A)(implicit a: Zero[A]): ArrayMap[K, A] =
-      ArrayMap(keys, indices, keys.map(v))
-
-    override def index[A](v: ArrayMap[K, A])(k: K)(implicit a: Zero[A]): A =
-      v(k)
-
-    override def sum[A](v: ArrayMap[K, A])(implicit a: Additive[A]): A = {
-      var s = a.zero
-      var i = 0
-      while (i < v.array.size) {
-        s = a.add(s, v.array(i))
+      while (i < n) {
+        keys += x.keys(i)
+        hashes += x.hashes(i)
+        values += h(x.values(i), y.default(x.keys(i)))
         i += 1
       }
-      s
+
+      while (j < m) {
+        keys += y.keys(j)
+        hashes += y.hashes(j)
+        values += h(x.default(y.keys(j)), y.values(j))
+        j += 1
+      }
+
+      TotalMap(keys.result(), hashes.result(), values.result(), k => h(x.default(k), y.default(k)))
     }
 
-    override def restrict(keys: => Set[K]): Subspace[({type T[A] = ArrayMap[K, A]})#T] =
-      new WholeSpace[({type T[+A] = ArrayMap[K, A]})#T]()(this)
+    override def tabulate[A](v: (K) => A)(implicit a: Zero[A]): TotalMap[K, A] =
+      TotalMap(Vector.empty, Array.empty, Array.empty, v)
+
+    override def tabulatePartial[A](v: Map[K, A])(implicit a: Zero[A]): TotalMap[K, A] = {
+      val (keys, hashes, values) = v.map(kv => (kv._1, kv._1.hashCode(), kv._2)).toSeq.sortBy(_._2).unzip3
+      TotalMap(keys.toVector, hashes.toArray, values.toArray, _ => a.zero)
+    }
+
+    override def index[A](v: TotalMap[K, A])(k: K)(implicit a: Zero[A]): A = {
+      indexOf(v.keys, v.hashes, k) match {
+        case Some(i) => v.values(i)
+        case None => v.default(k)
+      }
+    }
+
+    def indexOf(keys: Vector[K], hashes: Array[Int], key: K): Option[Int] = {
+      val hash = key.hashCode()
+      var i = util.Arrays.binarySearch(hashes, hash)
+      if (i >= 0) {
+        var found = false
+        while (!found && i < hashes.length && hash == hashes(i)) {
+          if (key == keys(i)) {
+            found = true
+          } else {
+            i += 1
+          }
+        }
+        if (found) {
+          Some(i)
+        } else {
+          None
+        }
+      } else {
+        None
+      }
+    }
+
+    override def restrict(keySet: => Set[K]) = new Subspace[({type T[A] = TotalMap[K, A]})#T] {
+      override type Type[A] = InsaneMap[K, A]
+
+      val (allKeys, allHashes) = {
+        val (keys, hashes) = keySet.map(k => (k, k.hashCode())).toSeq.sortBy(_._2).unzip
+        (keys.toVector, hashes.toArray)
+      }
+
+      override def project[A](v: TotalMap[K, A])(implicit a: Zero[A]): InsaneMap[K, A] = {
+        val hashes = Array.newBuilder[Int]
+        val values = Array.newBuilder[A]
+        val n = v.hashes.length
+        hashes.sizeHint(n)
+        values.sizeHint(n)
+
+        var i = 0
+        while (i < n) {
+          if (indexOf(allKeys, allHashes, v.keys(i)).isDefined) {
+            hashes += v.hashes(i)
+            values += v.values(i)
+          }
+          i += 1
+        }
+
+        InsaneMap(hashes.result(), values.result())
+      }
+
+      override def inject[A](v: InsaneMap[K, A])(implicit a: Zero[A]): TotalMap[K, A] = {
+        val keys = Vector.newBuilder[K]
+
+        var i = 0
+        while (i < v.hashes.length) {
+          keys += allKeys(util.Arrays.binarySearch(allHashes, v.hashes(i)))
+          i += 1
+        }
+
+        TotalMap(keys.result(), v.hashes, v.values, _ => a.zero)
+      }
+
+      override implicit val space: Cartesian[Type] =
+        InsaneMap.CartesianInst(allKeys)
+    }
   }
+
+  def representable[K](implicit ord: Ordering[K]) = new RepresentableInst[K]()
 }

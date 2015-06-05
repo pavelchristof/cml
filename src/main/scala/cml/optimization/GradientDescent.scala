@@ -28,19 +28,38 @@ case class GradientDescent[In[_], Out[_]] (
     import ZeroEndofunctor.asZero
     import diffEngine.zero
 
+    // This is the largest subspace that we'll work with.
+    val subspace = model.restrictRDD(batches.flatMap(identity), costFun)
+    implicit val space = subspace.space
+
+    val sc = batches.sparkContext
+    val subspaceBC = sc.broadcast(subspace)
+    
     // Prepare the cost function.
     val costs = batches.map(data => model.cost(data, costFun)).cache()
 
     // Prepare the regularization function.
-    val regSubspace = model.restrictRDD(batches.flatMap(identity), costFun)
-    implicit val regSpace = regSubspace.space
-    def reg(inst: model.Type[A]) =
-      costFun.regularization[regSubspace.Type, A](regSubspace.project(inst))
+    def reg(inst: subspace.Type[A]) =
+      costFun.regularization[subspace.Type, A](inst)
 
     // Prepare the batch gradients.
     val batchGrad = batches.map(data => {
-      // Find the subspace just on this batch.
-      val batchSubspace = model.restrict(data, costFun)
+      // Restrict the subspace further.
+      val keys = data
+        .map(sample => {
+          type R = Reflector[space.Key]
+          val converted = model.convertSample[A, R](sample)
+          space.reflect(inst => {
+            val sample = Sample(
+              input = converted._1,
+              expected = converted._2,
+              actual = model(subspace.inject(inst))(converted._1)
+            )
+            costFun.scoreSample(sample)
+          })
+        })
+        .reduce(_ ++ _)
+      val batchSubspace = space.restrict(keys)
       implicit val batchSpace = batchSubspace.space
 
       // Wrap numbers in data with Aug[_].
@@ -48,50 +67,54 @@ case class GradientDescent[In[_], Out[_]] (
         in.map(s._1)(diffEngine.constant(_)),
         out.map(s._2)(diffEngine.constant(_))))
 
-      // Compute the gradient function.
       val grad = diffEngine.grad[A, batchSubspace.Type]((inst, ctx) => {
         implicit val augAn = diffEngine.analytic(fl, ctx)
+        val injectedInst = subspace.inject(batchSubspace.inject(inst))
+
         prepData
-          .map(model.applySample(batchSubspace.inject(inst))(_))
+          .map(model.applySample(injectedInst)(_))
           .map(costFun.scoreSample[diffEngine.Aug[A]](_))
           .reduce(augAn.add(_, _))
       })
 
-      (inst: model.Type[A]) => batchSubspace.inject(grad(batchSubspace.project(inst)))
+      (inst: subspace.Type[A]) => batchSubspace.inject(grad(batchSubspace.project(inst)))
     }).cache()
 
     // Prepare the regularization gradient.
-    val regGrad = diffEngine.grad[A, regSubspace.Type]((inst, ctx) => {
+    val regGrad = diffEngine.grad[A, subspace.Type]((inst, ctx) => {
       implicit val augAn = diffEngine.analytic(fl, ctx)
-      costFun.regularization[regSubspace.Type, diffEngine.Aug[A]](inst)
+      costFun.regularization[subspace.Type, diffEngine.Aug[A]](inst)
     })
 
     // Get the sample count and create a new gradient transformer.
     val count = fl.fromLong(batches.flatMap(identity).count())
-    val tr = gradTrans.create[model.Type, A]()(fl, model.space)
+    val tr = gradTrans.create[subspace.Type, A]()
 
-    def totalCost(inst: model.Type[A]): A =
+    def totalCost(inst: subspace.Type[A]): A =
       fl.add(
-        fl.div(costs.map(f => f(inst)).reduce(fl.add(_, _)), count),
+        fl.div(costs.map(f => f(subspace.inject(inst))).reduce(fl.add(_, _)), count),
         reg(inst))
 
-    println(s"Model dimension: ${regSpace.dim}")
+    println(s"Model dimension: ${space.dim}")
 
-    var inst = initialInst
+    var inst = subspace.project(initialInst)
     var cost = totalCost(inst)
     var bestInst = inst
     var bestCost = cost
 
     for (i <- 1 to iterations) {
       val gradBatches = batchGrad
-        .map(grad => grad(inst))(asZero(model.space, fl))
-        .reduce(model.space.add(_, _))
-      val gradReg = regSubspace.inject(regGrad(regSubspace.project(inst)))
-      val gradTotal = model.space.add(
-        model.space.div(gradBatches, count),
-        gradReg)
+        .map(grad => grad(inst): Any)
+        .reduce((x: Any, y: Any) => {
+          val ss = subspaceBC.value
+          ss.space.add(x.asInstanceOf[ss.Type[A]], y.asInstanceOf[ss.Type[A]]): Any
+        })
+        .asInstanceOf[subspace.Type[A]]
+      val gradTotal = space.add(
+        space.div(gradBatches, count),
+        regGrad(inst))
 
-      inst = model.space.sub(inst, tr(gradTotal))
+      inst = space.sub(inst, tr(gradTotal))
       cost = totalCost(inst)
 
       println(s"Iteration $i: $cost")
@@ -102,6 +125,6 @@ case class GradientDescent[In[_], Out[_]] (
       }
     }
 
-    bestInst
+    subspace.inject(bestInst)
   }
 }
