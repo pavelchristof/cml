@@ -42,7 +42,7 @@ object TotalMap {
           values += h(x.values(i), y.values(j))
           i += 1
           j += 1
-        } else if (x.hashes(i) < y.hashes(j) || (x.hashes(i) == y.hashes(j) && ord.lt(x.keys(i), y.keys(i)))) {
+        } else if (x.hashes(i) < y.hashes(j) || (x.hashes(i) == y.hashes(j) && ord.lt(x.keys(i), y.keys(j)))) {
           keys += x.keys(i)
           hashes += x.hashes(i)
           values += h(x.values(i), y.default(x.keys(i)))
@@ -109,14 +109,14 @@ object TotalMap {
     }
 
     override def restrict(keySet: => Set[K]) = new Subspace[({type T[A] = TotalMap[K, A]})#T] {
-      override type Type[A] = InsaneMap[K, A]
+      override type Type[A] = PartialMap[K, A]
 
       val (allKeys, allHashes) = {
-        val (keys, hashes) = keySet.map(k => (k, k.hashCode())).toSeq.sortBy(_._2).unzip
+        val (hashes, keys) = keySet.map(k => (k.hashCode(), k)).toSeq.sorted.unzip
         (keys.toVector, hashes.toArray)
       }
 
-      override def project[A](v: TotalMap[K, A])(implicit a: Zero[A]): InsaneMap[K, A] = {
+      override def project[A](v: TotalMap[K, A])(implicit a: Zero[A]): PartialMap[K, A] = {
         val values = new Array[A](allKeys.size)
         var i = 0
         while (i < allKeys.size) {
@@ -126,15 +126,15 @@ object TotalMap {
           }
           i += 1
         }
-        InsaneMap(allKeys, allHashes, values)
+        PartialMap(allKeys, allHashes, values)
       }
 
-      override def inject[A](v: InsaneMap[K, A])(implicit a: Zero[A]): TotalMap[K, A] = {
+      override def inject[A](v: PartialMap[K, A])(implicit a: Zero[A]): TotalMap[K, A] = {
         TotalMap(v.keys, v.hashes, v.values, _ => a.zero)
       }
 
       override implicit val space: Cartesian[Type] =
-        InsaneMap.CartesianInst(allKeys)
+        PartialMap.CartesianInst(allKeys, allHashes)
     }
   }
 
