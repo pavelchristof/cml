@@ -121,70 +121,66 @@ object Backward extends Engine {
     implicit f: Field[A],
     ctx: Context[A]
   ) extends Field[Aug[A]] {
-    import f.fieldSyntax._
-
-    override val zero: Aug[A] = (-1, _0)
-    override val one: Aug[A] = (-1, _1)
+    override val zero: Aug[A] = (-1, f.zero)
+    override val one: Aug[A] = (-1, f.one)
 
     override def add(x: Aug[A], y: Aug[A]): Aug[A] =
-      (binary(x._1, y._1, _1, _1), x._2 + y._2)
+      (binary(x._1, y._1, f.one, f.one), f.add(x._2, y._2))
     override def neg(x: Aug[A]): Aug[A] =
-      (unary(x._1, -_1), -x._2)
+      (unary(x._1, f.neg(f.one)), f.neg(x._2))
     override def sub(x: Aug[A], y: Aug[A]): Aug[A] =
-      (binary(x._1, y._1, _1, -_1), x._2 - y._2)
+      (binary(x._1, y._1, f.one, f.neg(f.one)), f.sub(x._2, y._2))
 
     override def mul(x: Aug[A], y: Aug[A]): Aug[A] =
-      (binary(x._1, y._1, y._2, x._2), x._2 * y._2)
+      (binary(x._1, y._1, y._2, x._2), f.mul(x._2, y._2))
     override def inv(x: Aug[A]): Aug[A] =
-      (unary(x._1, -f.inv(x._2.square)), f.inv(x._2))
+      (unary(x._1, f.neg(f.inv(f.square(x._2)))), f.inv(x._2))
     override def div(x: Aug[A], y: Aug[A]): Aug[A] =
-      (binary(x._1, y._1, f.inv(y._2), -x._2 / y._2.square), x._2 / y._2)
+      (binary(x._1, y._1, f.inv(y._2), f.neg(f.div(x._2, f.square(y._2)))), f.div(x._2, y._2))
 
     override def fromInt(n: Int): Aug[A] = (-1, f.fromInt(n))
   }
 
   private class AugAnalytic[A] (
-    implicit an: Analytic[A],
+    implicit a: Analytic[A],
     ctx: Context[A]
   ) extends AugField[A] with Analytic[Aug[A]] {
-    import an.analyticSyntax._
-
     override def abs(x: Aug[A]): Aug[A] =
-      (unary(x._1, x._2.signum), x._2.abs)
+      (unary(x._1, a.signum(x._2)), a.abs(x._2))
     override def signum(x: Aug[A]): Aug[A] =
-      (unary(x._1, _0), x._2.signum)
+      (unary(x._1, a.zero), a.signum(x._2))
 
     override def exp(x: Aug[A]): Aug[A] =
-      (unary(x._1, x._2.exp), x._2.exp)
+      (unary(x._1, a.exp(x._2)), a.exp(x._2))
     override def log(x: Aug[A]): Aug[A] =
-      (unary(x._1, x._2.inv), x._2.log)
+      (unary(x._1, a.inv(x._2)), a.log(x._2))
 
     override def sqrt(x: Aug[A]): Aug[A] =
-      (unary(x._1, (_2 * x._2.sqrt).inv), x._2.sqrt)
+      (unary(x._1, a.inv(a.mul(a.fromInt(2), a.sqrt(x._2)))), a.sqrt(x._2))
 
     override def sin(x: Aug[A]): Aug[A] =
-      (unary(x._1, x._2.cos), x._2.sin)
+      (unary(x._1, a.cos(x._2)), a.sin(x._2))
     override def cos(x: Aug[A]): Aug[A] =
-      (unary(x._1, -x._2.sin), x._2.cos)
+      (unary(x._1, a.neg(a.sin(x._2))), a.cos(x._2))
     override def tan(x: Aug[A]): Aug[A] =
-      (unary(x._1, _2 / (_1 + (x._2 + x._2).cos)), x._2.tan)
+      (unary(x._1, a.div(a.fromInt(2), a.add(a.one, a.cos(a.double(x._2))))), a.tan(x._2))
 
     override def asin(x: Aug[A]): Aug[A] =
-      (unary(x._1, (_1 - x._2.square).sqrt.inv), x._2.asin)
+      (unary(x._1, a.inv(a.sqrt(a.sub(a.one, a.square(x._2))))), a.asin(x._2))
     override def acos(x: Aug[A]): Aug[A] =
-      (unary(x._1, -(_1 - x._2.square).sqrt.inv), x._2.acos)
+      (unary(x._1, a.neg(a.inv(a.sqrt(a.sub(a.one, a.square(x._2)))))), a.acos(x._2))
     override def atan(x: Aug[A]): Aug[A] =
-      (unary(x._1, (_1 + x._2.square).inv), x._2.atan)
+      (unary(x._1, a.inv(a.add(a.one, a.square(x._2)))), a.atan(x._2))
 
     override def sinh(x: Aug[A]): Aug[A] =
-      (unary(x._1, x._2.cosh), x._2.sinh)
+      (unary(x._1, a.cosh(x._2)), a.sinh(x._2))
     override def cosh(x: Aug[A]): Aug[A] =
-      (unary(x._1, x._2.sinh), x._2.cosh)
+      (unary(x._1, a.sinh(x._2)), a.cosh(x._2))
     override def tanh(x: Aug[A]): Aug[A] =
-      (unary(x._1, (_4 * x._2.cosh) / ((x._2 + x._2).cosh + _1).square), x._2.tanh)
+      (unary(x._1, a.div(a.mul(a.fromInt(4), a.cosh(x._2)), a.square(a.add(a.cosh(a.double(x._2)), a.one)))), a.tanh(x._2))
 
-    override def fromFloat(x: Float): Aug[A] = (-1, an.fromFloat(x))
-    override def fromDouble(x: Double): Aug[A] = (-1, an.fromDouble(x))
+    override def fromFloat(x: Float): Aug[A] = (-1, a.fromFloat(x))
+    override def fromDouble(x: Double): Aug[A] = (-1, a.fromDouble(x))
   }
 
   /**

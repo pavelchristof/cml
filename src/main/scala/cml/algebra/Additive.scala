@@ -10,6 +10,8 @@ trait Additive[T] extends Zero[T] {
   def sub(x: T, y: T): T = add(x, neg(y))
   def neg(x: T): T
 
+  def double(x: T) = add(x, x)
+
   @transient lazy val additiveSyntax = new AdditiveSyntax[T] { def F = Additive.this }
 }
 

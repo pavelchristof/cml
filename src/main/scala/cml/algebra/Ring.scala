@@ -9,6 +9,8 @@ trait Ring[T] extends Additive[T] {
   def mul(x: T, y: T): T
   val one: T
 
+  def square(x: T) = mul(x, x)
+
   @transient lazy val ringSyntax = new RingSyntax[T] { def F = Ring.this }
 }
 

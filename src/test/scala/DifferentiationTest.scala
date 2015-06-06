@@ -111,7 +111,29 @@ object DifferentiationTest extends Properties("Differentiation") {
       }
       override def deriv[A](x: A)(implicit an: Analytic[A]): A = {
         import an.analyticSyntax._
-        _0
+        -_2 * x.sin * x.cos + (_2 * x).sin
+      }
+    },
+    new Fun {
+      override def description = "sin"
+      override def value[A](x: A)(implicit an: Analytic[A]): A = {
+        import an.analyticSyntax._
+        x.sin
+      }
+      override def deriv[A](x: A)(implicit an: Analytic[A]): A = {
+        import an.analyticSyntax._
+        x.cos
+      }
+    },
+    new Fun {
+      override def description = "cos"
+      override def value[A](x: A)(implicit an: Analytic[A]): A = {
+        import an.analyticSyntax._
+        x.cos
+      }
+      override def deriv[A](x: A)(implicit an: Analytic[A]): A = {
+        import an.analyticSyntax._
+        -x.sin
       }
     },
     new Fun {
