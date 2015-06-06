@@ -4,7 +4,7 @@ import cml.algebra._
 
 object AdaGrad extends GradTrans {
   override def create[V[_], A]()(implicit fl: Floating[A], space: Representable[V]): (V[A]) => V[A] =
-    new SerializableFunction[V[A], V[A]] {
+    new Function[V[A], V[A]] with Serializable {
       var history: V[A] = space.zero
       override def apply(grad: V[A]): V[A] = {
         import fl.analyticSyntax._
