@@ -4,7 +4,7 @@ import cml.algebra._
 import scala.collection.mutable
 
 object Backward extends Engine {
-  type Aug[A] = (Option[Int], A)
+  type Aug[A] = (Int, A)
 
   type Context[A] = TapeBuilder[A]
 
@@ -76,18 +76,15 @@ object Backward extends Engine {
     tape
   }
 
-  private def unary[A](i: Option[Int], d: A)(implicit tape: TapeBuilder[A]): Option[Int] = i match {
-    case Some(n) => Some(tape.newUnary(n, d))
-    case _ => None
-  }
+  private def unary[A](i: Int, d: A)(implicit tape: TapeBuilder[A]): Int =
+    if (i >= 0) tape.newUnary(i, d) else -1
 
-  private def binary[A](i1: Option[Int], i2: Option[Int], d1: A, d2: A)
-      (implicit tape: TapeBuilder[A]): Option[Int] = (i1, i2) match {
-    case (Some(n), Some(m)) => Some(tape.newBinary(n, m, d1, d2))
-    case (Some(n), _) => Some(tape.newUnary(n, d1))
-    case (_, Some(m)) => Some(tape.newUnary(m, d2))
-    case (_, _) => None
-  }
+  private def binary[A](i1: Int, i2: Int, d1: A, d2: A)
+      (implicit tape: TapeBuilder[A]): Int =
+    if (i1 >= 0 && i2 >= 0) tape.newBinary(i1, i2, d1, d2)
+    else if (i1 >= 0) tape.newUnary(i1, d1)
+    else if (i2 >= 0) tape.newUnary(i2, d2)
+    else -1
 
   private def backpropagate[@specialized(Float, Double) A](out: Int, b: TapeBuilder[A])
       (implicit a: AbelianRing[A]): Array[A] = {
@@ -117,7 +114,7 @@ object Backward extends Engine {
   }
 
   override implicit def zero[A](implicit z: Zero[A]): Zero[Aug[A]] = new Zero[Aug[A]] {
-    override val zero: Aug[A] = (None, z.zero)
+    override val zero: Aug[A] = (-1, z.zero)
   }
 
   private class AugField[A] (
@@ -126,8 +123,8 @@ object Backward extends Engine {
   ) extends Field[Aug[A]] {
     import f.fieldSyntax._
 
-    override val zero: Aug[A] = (None, _0)
-    override val one: Aug[A] = (None, _1)
+    override val zero: Aug[A] = (-1, _0)
+    override val one: Aug[A] = (-1, _1)
 
     override def add(x: Aug[A], y: Aug[A]): Aug[A] =
       (binary(x._1, y._1, _1, _1), x._2 + y._2)
@@ -143,7 +140,7 @@ object Backward extends Engine {
     override def div(x: Aug[A], y: Aug[A]): Aug[A] =
       (binary(x._1, y._1, f.inv(y._2), -x._2 / y._2.square), x._2 / y._2)
 
-    override def fromInt(n: Int): Aug[A] = (None, f.fromInt(n))
+    override def fromInt(n: Int): Aug[A] = (-1, f.fromInt(n))
   }
 
   private class AugAnalytic[A] (
@@ -186,8 +183,8 @@ object Backward extends Engine {
     override def tanh(x: Aug[A]): Aug[A] =
       (unary(x._1, (_4 * x._2.cosh) / ((x._2 + x._2).cosh + _1).square), x._2.tanh)
 
-    override def fromFloat(x: Float): Aug[A] = (None, an.fromFloat(x))
-    override def fromDouble(x: Double): Aug[A] = (None, an.fromDouble(x))
+    override def fromFloat(x: Float): Aug[A] = (-1, an.fromFloat(x))
+    override def fromDouble(x: Double): Aug[A] = (-1, an.fromDouble(x))
   }
 
   /**
@@ -203,7 +200,7 @@ object Backward extends Engine {
   /**
    * Injects a constant value into the augmented field.
    */
-  override def constant[A](x: A)(implicit field: Field[A]): Aug[A] = (None, x)
+  override def constant[A](x: A)(implicit field: Field[A]): Aug[A] = (-1, x)
 
   /**
    * Differentiates a function.
@@ -217,20 +214,19 @@ object Backward extends Engine {
   override def diffWithValue[A](f: (Aug[A], Context[A]) => Aug[A])
       (implicit field: Field[A]): (A) => (A, A) = (x: A) => {
     val ctx = tapeBuilder[A]
-    val res = f((Some(0), x), ctx)
-    res._1 match {
-      case Some(i) => {
-        val arr = backpropagate(i, ctx)
-        (res._2, arr(0))
-      }
-      case None => (res._2, field.zero)
+    val res = f((0, x), ctx)
+    if (res._1 >= 0) {
+      val arr = backpropagate(res._1, ctx)
+      (res._2, arr(0))
+    } else {
+      (res._2, field.zero)
     }
   }
 
   private def makeInput[A, V[_]](v: V[A], tape: TapeBuilder[A])
       (implicit space: Cartesian[V], f: Field[A]): V[Aug[A]] = {
     space.tabulate[Aug[A]](key => {
-      (Some(space.keyToInt(key)), space.index(v)(key))
+      (space.keyToInt(key), space.index(v)(key))
     })(field[A](f, tape))
   }
 
@@ -254,12 +250,11 @@ object Backward extends Engine {
       (implicit field: Field[A], space: Cartesian[V]): (V[A]) => (A, V[A]) = (v: V[A]) => {
     val tape = tapeBuilderVec[A, V]
     val res = f(makeInput(v, tape), tape)
-    res._1 match {
-      case Some(j) => {
-        val arr = backpropagate(j, tape)
-        (res._2, makeGrad(arr))
-      }
-      case None => (res._2, space.zero)
+    if (res._1 >= 0) {
+      val arr = backpropagate(res._1, tape)
+      (res._2, makeGrad(arr))
+    } else {
+      (res._2, space.zero)
     }
   }
 }
