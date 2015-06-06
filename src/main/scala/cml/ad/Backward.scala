@@ -12,10 +12,7 @@ object Backward extends Engine {
     val values: Array[A],
     val indices: Array[Int],
     val size: Int
-  ) {
-    def apply(i: Int): (Int, A, Int, A) =
-      (indices(2*i), values(2*i), indices(2*i+1), values(2*i+1))
-  }
+  )
 
   class TapeBuilder[A] (implicit a: Zero[A]) {
     val values: mutable.Builder[A, Array[A]] = Array.newBuilder
@@ -92,22 +89,27 @@ object Backward extends Engine {
     case (_, _) => None
   }
 
-  private def backpropagate[A](out: Int, b: TapeBuilder[A])(implicit a: AbelianRing[A]): Array[A] = {
+  private def backpropagate[@specialized(Float, Double) A](out: Int, b: TapeBuilder[A])
+      (implicit a: AbelianRing[A]): Array[A] = {
     val tape = b.result()
     val arr = Array.fill[A](tape.size)(a.zero)
     arr(out) = a.one
 
     var i = tape.size - 1
     while (i >= 0) {
-      tape(i) match {
-        case (-1, _, _, _) => ()
-        case (j, d, -1, _) => arr(j) = a.add(arr(j), a.mul(d, arr(i)))
-        case (j1, d1, j2, d2) => {
-          val d = arr(i)
-          arr(j1) = a.add(arr(j1), a.mul(d1, d))
-          arr(j2) = a.add(arr(j2), a.mul(d2, d))
-        }
-      }
+      val d = arr(i)
+
+      val j1 = tape.indices(2*i)
+      val j2 = tape.indices(2*i + 1)
+      val d1 = tape.values(2*i)
+      val d2 = tape.values(2*i + 1)
+
+      if (j1 != -1)
+        arr(j1) = a.add(arr(j1), a.mul(d1, d))
+
+      if (j2 != -1)
+        arr(j2) = a.add(arr(j2), a.mul(d2, d))
+
       i -= 1
     }
 
