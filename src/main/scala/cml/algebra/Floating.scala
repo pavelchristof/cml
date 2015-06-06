@@ -58,6 +58,8 @@ object Floating {
     override val maxValue: Float = Float.MaxValue
     override val nan: Float = Float.NaN
     override def isNaN(x: Float): Boolean = x.isNaN
+
+    override def runtimeClass: Class[_] = java.lang.Float.TYPE
   }
 
   implicit object DoubleInst extends Floating[Double] {
@@ -103,5 +105,7 @@ object Floating {
     override val maxValue: Double = Double.MaxValue
     override val nan: Double = Double.NaN
     override def isNaN(x: Double): Boolean = x.isNaN
+
+    override def runtimeClass: Class[_] = java.lang.Double.TYPE
   }
 }
