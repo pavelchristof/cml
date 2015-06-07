@@ -76,7 +76,12 @@ object TotalMap {
       TotalMap(Vector.empty, Array.empty, Array.empty, v)
 
     override def tabulatePartial[A](v: Map[K, A])(implicit a: Zero[A]): TotalMap[K, A] = {
-      val (keys, hashes, values) = v.map(kv => (kv._1, kv._1.hashCode(), kv._2)).toSeq.sortBy(_._2).unzip3
+      val (hashes, keys, values) = v
+        .toSeq
+        .map(kv => ((kv._1.hashCode(), kv._1), kv._2))
+        .sortBy(_._1)
+        .map(khv => (khv._1._1, khv._1._2, khv._2))
+        .unzip3
       TotalMap(keys.toVector, hashes.toArray, values.toArray, _ => a.zero)
     }
 

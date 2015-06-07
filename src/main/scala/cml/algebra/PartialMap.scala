@@ -115,10 +115,20 @@ object PartialMap {
     override def tabulate[A](v: (K) => A)(implicit a: Zero[A]): PartialMap[K, A] =
       PartialMap(allKeys, allHashes, allKeys.map(v).toArray)
 
+    override def tabulatePartial[A](v: Map[K, A])(implicit a: Zero[A]): PartialMap[K, A] = {
+      val (hashes, keys, values) = v
+        .toSeq
+        .map(kv => ((kv._1.hashCode(), kv._1), kv._2))
+        .sortBy(_._1)
+        .map(khv => (khv._1._1, khv._1._2, khv._2))
+        .unzip3
+      PartialMap(keys.toVector, hashes.toArray, values.toArray)
+    }
+
     override def sum[A](v: PartialMap[K, A])(implicit a: Additive[A]): A = {
       var s = a.zero
       var i = 0
-      while (i < v.values.size) {
+      while (i < v.values.length) {
         s = a.add(s, v.values(i))
         i += 1
       }
