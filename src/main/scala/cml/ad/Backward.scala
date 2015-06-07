@@ -11,23 +11,14 @@ object Backward extends Engine {
   class Tape[A] (
     val values: Array[A],
     val indices: Array[Int],
+    val offset: Int,
     val size: Int
   )
 
-  class TapeBuilder[A] (implicit a: Zero[A]) {
+  class TapeBuilder[A] (val starting: Int) (implicit a: Zero[A]) {
     val values: mutable.Builder[A, Array[A]] = Array.newBuilder
     val indices: mutable.Builder[Int, Array[Int]] = Array.newBuilder
-    var index: Int = 0
-
-    def newNullary(): Int = {
-      indices += -1
-      indices += -1
-      values += a.zero
-      values += a.zero
-      val r = index
-      index += 1
-      r
-    }
+    var index: Int = starting
 
     def newUnary(i: Int, d: A): Int = {
       indices += i
@@ -55,24 +46,18 @@ object Backward extends Engine {
     }
 
     def result(): Tape[A] =
-      new Tape[A](values.result(), indices.result(), index)
+      new Tape[A](values.result(), indices.result(), starting, index)
   }
 
   private def tapeBuilder[A](implicit a: Zero[A]): TapeBuilder[A] = {
-    val tape = new TapeBuilder[A]()
-    tape.sizeHint(1024 * 64)
-    tape.newNullary()
+    val tape = new TapeBuilder[A](1)
+    tape.sizeHint(256)
     tape
   }
 
   private def tapeBuilderVec[A, V[_]](implicit a: Zero[A], space: Cartesian[V]): TapeBuilder[A] = {
-    val tape = new TapeBuilder[A]()
+    val tape = new TapeBuilder[A](space.dim)
     tape.sizeHint(space.dim * 2)
-    var i = 0
-    while (i < space.dim) {
-      tape.newNullary()
-      i += 1
-    }
     tape
   }
 
@@ -93,13 +78,14 @@ object Backward extends Engine {
     arr(out) = a.one
 
     var i = tape.size - 1
-    while (i >= 0) {
+    while (i >= tape.offset) {
       val d = arr(i)
 
-      val j1 = tape.indices(2*i)
-      val j2 = tape.indices(2*i + 1)
-      val d1 = tape.values(2*i)
-      val d2 = tape.values(2*i + 1)
+      val k = i - tape.offset
+      val j1 = tape.indices(2*k)
+      val j2 = tape.indices(2*k + 1)
+      val d1 = tape.values(2*k)
+      val d2 = tape.values(2*k + 1)
 
       if (j1 != -1)
         arr(j1) = a.add(arr(j1), a.mul(d1, d))
