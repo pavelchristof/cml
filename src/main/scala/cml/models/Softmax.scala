@@ -6,16 +6,10 @@ import cml.algebra._
 
 final case class Softmax[V[_]] (
   implicit vs: Normed[V]
-) extends Model[V, V] {
-  override type Type[A] = Unit
-  override implicit val space = Cartesian.Zero
-
+) extends ParameterlessModel[V, V] {
   def apply[A](input: V[A])(implicit a: Analytic[A]): V[A] = {
     val expd = vs.map(input)(a.exp)
     val total = vs.sum(expd)
     vs.map(expd)(a.div(_, total))
   }
-
-  override def apply[A](inst: Type[A])(input: V[A])(implicit a: Analytic[A]): V[A] =
-    apply(input)
 }

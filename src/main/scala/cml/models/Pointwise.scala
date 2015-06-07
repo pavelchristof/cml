@@ -8,14 +8,7 @@ final case class Pointwise[V[_]] (
   f: AnalyticMap
 ) (implicit
   c: Cartesian[V]
-) extends Model[V, V] {
-  override type Type[A] = Unit
-
-  override implicit val space = Cartesian.Zero
-
+) extends ParameterlessModel[V, V] {
   def apply[A](input: V[A])(implicit a: Analytic[A]): V[A] =
     c.map(input)(f(_))
-
-  def apply[A](inst: Unit)(input: V[A])(implicit a: Analytic[A]): V[A] =
-    apply(input)
 }
