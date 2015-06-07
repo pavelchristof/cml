@@ -51,7 +51,31 @@ object Vec {
     override def sum[A](v: Vec[S, A])(implicit a: Additive[A]): A =
       v.get.fold(a.zero)(a.add)
 
-    override def restrict(keys: => Set[Int]) = new WholeSpace[({type T[a] = Vec[S, a]})#T]()(this)
+    override def restrict(keys: => Set[Int]) =
+      if (keys.size == dim)
+        new WholeSpace[({type T[a] = Vec[S, a]})#T]()(this)
+      else
+        new Subspace[({type T[a] = Vec[S, a]})#T] {
+          val size = RuntimeNat(keys.size)
+          val indices = keys.toArray.sorted
+
+          override type Type[A] = Vec[size.Type, A]
+
+          override def inject[A](v: Vec[size.Type, A])(implicit a: Zero[A]): Vec[S, A] = {
+            val r = zero
+            var i = 0
+            while (i < indices.length) {
+              r.get(indices(i)) = v.get(i)
+              i += 1
+            }
+            r
+          }
+
+          override def project[A](v: Vec[S, A])(implicit a: Zero[A]): Vec[size.Type, A] =
+            space.tabulate(i => v.get(indices(i)))
+
+          override implicit val space = cartesian(size())
+        }
   }
 
   implicit def cartesian[S <: Nat](implicit toInt: ToInt[S]) = new CartesianImpl[S](toInt)
