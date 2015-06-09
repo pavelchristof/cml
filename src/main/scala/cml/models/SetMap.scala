@@ -4,7 +4,7 @@ import cml._
 import cml.algebra._
 
 final case class SetMap[K, V[_]] (implicit
-  valueSpace: Cartesian[V],
+  valueSpace: Representable[V],
   ord: Ordering[K]
 ) extends Model[({type T[A] = K})#T, V] {
   override type Type[A] = TotalMap[K, V[A]]

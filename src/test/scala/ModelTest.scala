@@ -12,7 +12,7 @@ import scalaz._
 object ModelTest extends App {
   implicit val diffEngine = ad.Backward
 
-  val vecSize = RuntimeNat(3)
+  val vecSize = RuntimeNat(30)
 
   type VecIn[A] = A
   type VecHidden[A] = Vec[vecSize.Type, A]
@@ -48,25 +48,29 @@ object ModelTest extends App {
   val data = sc.parallelize(Seq(
     Seq((1d, 1d)),
     Seq((2d, 0d)),
-    Seq((3d, 1d)),
-    Seq((4d, 0d))
+    Seq((3d, 0.5d)),
+    Seq((4d, 0d)),
+    Seq((5d, 1d)),
+    Seq((6d, 0d)),
+    Seq((7d, 0.5d)),
+    Seq((8d, 0d))
   ))
 
-  val optimizer = GradientDescent(
+  val optimizer = StochasticGradientDescent(
     model,
     iterations = 1000,
     gradTrans = Stabilize.andThen(AdaGrad)
   )
 
   var rng = new Random()
-  val initialInst = optimizer.model.space.tabulate(_ => rng.nextDouble() * 0.2 - 0.1)
+  val initialInst = optimizer.model.space.tabulate(_ => rng.nextDouble() * 2 - 1)
 
   val learned = optimizer[Double](
       data,
       costFun,
       initialInst)
 
-  for (i <- Array(1d, 2d, 3d, 4d)) {
-    println(optimizer.model(learned)(i))
+  for (i <- 1 to 16) {
+    println(optimizer.model(learned)(i.toDouble))
   }
 }

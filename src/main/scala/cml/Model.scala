@@ -2,7 +2,11 @@ package cml
 
 import cml.algebra._
 import org.apache.spark.rdd.RDD
-import scala.collection.parallel.ParSeq
+
+trait Category[Hom[_, _]] {
+  def identity[A]: Hom[A, A]
+  def compose[A, B, C](f: Hom[B, C], g: Hom[A, B]): Hom[A, C]
+}
 
 /**
  * Machine learning models expressible as a differentiable function, mapping some input to some output.
@@ -10,7 +14,7 @@ import scala.collection.parallel.ParSeq
  * @tparam In The input type, parametrized by the numeric type.
  * @tparam Out The output type, parametrized by the numeric type.
  */
-trait Model[In[_], Out[_]] {
+trait Model[In[_], Out[_]] extends Serializable {
   /**
    * The type of model instances.
    */

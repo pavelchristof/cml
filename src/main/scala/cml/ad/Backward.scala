@@ -182,21 +182,21 @@ object Backward extends Engine {
   /**
    * Injects a constant value into the augmented field.
    */
-  override def constant[A](x: A)(implicit field: Field[A]): Aug[A] = (-1, x)
+  override def constant[A](x: A)(implicit a: Zero[A]): Aug[A] = (-1, x)
 
   /**
    * Differentiates a function.
    */
-  override def diff[A](f: (Aug[A], Context[A]) => Aug[A])(implicit field: Field[A]): (A) => A = (x: A) =>
+  override def diff[A](f: (Aug[A]) => (Context[A]) => Aug[A])(implicit field: Field[A]): (A) => A = (x: A) =>
     diffWithValue(f)(field)(x)._2
 
   /**
    * Computes a function value and its derivative.
    */
-  override def diffWithValue[A](f: (Aug[A], Context[A]) => Aug[A])
+  override def diffWithValue[A](f: (Aug[A]) => (Context[A]) => Aug[A])
       (implicit field: Field[A]): (A) => (A, A) = (x: A) => {
     val ctx = tapeBuilder[A]
-    val res = f((0, x), ctx)
+    val res = f((0, x))(ctx)
     if (res._1 >= 0) {
       val arr = backpropagate(res._1, ctx)
       (res._2, arr(0))
@@ -221,17 +221,17 @@ object Backward extends Engine {
   /**
    * Computes the gradient of a function taking a vector as the argument.
    */
-  override def grad[A, V[_]](f: (V[Aug[A]], Context[A]) => Aug[A])
+  override def grad[A, V[_]](f: (V[Aug[A]]) => (Context[A]) => Aug[A])
       (implicit field: Field[A], space: Cartesian[V]): (V[A]) => V[A] = (v: V[A]) =>
     gradWithValue(f)(field, space)(v)._2
 
   /**
    * Computes the value and gradient of a function taking a vector as the argument.
    */
-  override def gradWithValue[A, V[_]](f: (V[Aug[A]], Context[A]) => Aug[A])
+  override def gradWithValue[A, V[_]](f: (V[Aug[A]]) => (Context[A]) => Aug[A])
       (implicit field: Field[A], space: Cartesian[V]): (V[A]) => (A, V[A]) = (v: V[A]) => {
     val tape = tapeBuilderVec[A, V]
-    val res = f(makeInput(v, tape), tape)
+    val res = f(makeInput(v, tape))(tape)
     if (res._1 >= 0) {
       val arr = backpropagate(res._1, tape)
       (res._2, makeGrad(arr))

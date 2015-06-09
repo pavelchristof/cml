@@ -26,7 +26,7 @@ case class GradientDescent[In[_], Out[_]] (
     diffEngine: ad.Engine
   ): model.Type[A] = {
     import ZeroEndofunctor.asZero
-    import diffEngine.zero
+    import diffEngine.{zero, analytic}
 
     // This is the largest subspace that we'll work with.
     val subspace = model.restrictRDD(batches.flatMap(identity), costFun)
@@ -67,22 +67,20 @@ case class GradientDescent[In[_], Out[_]] (
         in.map(s._1)(diffEngine.constant(_)),
         out.map(s._2)(diffEngine.constant(_))))
 
-      val grad = diffEngine.grad[A, batchSubspace.Type]((inst, ctx) => {
-        implicit val augAn = diffEngine.analytic(fl, ctx)
+      val grad = diffEngine.grad[A, batchSubspace.Type](inst => implicit ctx => {
         val injectedInst = subspace.inject(batchSubspace.inject(inst))
 
         prepData
           .map(model.applySample(injectedInst)(_))
           .map(costFun.scoreSample[diffEngine.Aug[A]](_))
-          .reduce(augAn.add(_, _))
+          .reduce(analytic(fl, ctx).add(_, _))
       })
 
       (inst: subspace.Type[A]) => batchSubspace.inject(grad(batchSubspace.project(inst)))
     }).cache()
 
     // Prepare the regularization gradient.
-    val regGrad = diffEngine.grad[A, subspace.Type]((inst, ctx) => {
-      implicit val augAn = diffEngine.analytic(fl, ctx)
+    val regGrad = diffEngine.grad[A, subspace.Type](inst => implicit ctx => {
       costFun.regularization[subspace.Type, diffEngine.Aug[A]](inst)
     })
 
@@ -119,7 +117,7 @@ case class GradientDescent[In[_], Out[_]] (
 
       println(s"Iteration $i: $cost")
 
-      if (cmp.lt(cost, bestCost)) {
+      if (!fl.isNaN(cost) && cmp.lt(cost, bestCost)) {
         bestInst = inst
         bestCost = cost
       }

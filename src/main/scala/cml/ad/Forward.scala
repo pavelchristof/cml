@@ -10,6 +10,10 @@ object Forward extends Engine {
 
   type Context[A] = DummyImplicit
 
+  override implicit def zero[A](implicit z: Zero[A]): Zero[Aug[A]] = new Zero[Aug[A]] {
+    override val zero: Aug[A] = Aug(z.zero, z.zero)
+  }
+
   private class AugField[A](implicit f: Field[A]) extends Field[Aug[A]] {
     import f.fieldSyntax._
 
@@ -107,46 +111,42 @@ object Forward extends Engine {
   /**
    * Injects a constant value into the augmented field.
    */
-  override def constant[A](x: A)(implicit field: Field[A]): Aug[A] =
-    Aug(x, field.zero)
+  override def constant[A](x: A)(implicit a: Zero[A]): Aug[A] =
+    Aug(x, a.zero)
 
   /**
    * Differentiates a function.
    */
-  override def diff[A](f: (Aug[A], Context[A]) => Aug[A])(implicit field: Field[A]): (A) => A =
+  override def diff[A](f: (Aug[A]) => (Context[A]) => Aug[A])(implicit field: Field[A]): (A) => A =
     diffWithValue(f)(field)(_)._2
 
   /**
    * Computes a function value and its derivative.
    */
-  override def diffWithValue[A](f: (Aug[A], Context[A]) => Aug[A])(implicit field: Field[A]): (A) => (A, A) =
+  override def diffWithValue[A](f: (Aug[A]) => (Context[A]) => Aug[A])(implicit field: Field[A]): (A) => (A, A) =
     x => {
-      val r = f(Aug(x, field.one), DummyImplicit.dummyImplicit)
+      val r = f(Aug(x, field.one))(DummyImplicit.dummyImplicit)
       (r._1, r._2)
     }
 
   /**
    * Computes the gradient of a function taking a vector as the argument.
    */
-  override def grad[A, V[_]](f: (V[Aug[A]], Context[A]) => Aug[A])
+  override def grad[A, V[_]](f: (V[Aug[A]]) => (Context[A]) => Aug[A])
       (implicit field: Field[A], space: Cartesian[V]): (V[A]) => V[A] = x => {
     space.tabulate(i => {
       val input = space.tabulate(j =>
         Aug(space.index(x)(i), if (i == j) field.one else field.zero))
-      f(input, DummyImplicit.dummyImplicit)._2
+      f(input)(DummyImplicit.dummyImplicit)._2
     })
   }
 
   /**
    * Computes the value and gradient of a function taking a vector as the argument.
    */
-  override def gradWithValue[A, V[_]](f: (V[Aug[A]], Context[A]) => Aug[A])
+  override def gradWithValue[A, V[_]](f: (V[Aug[A]]) => (Context[A]) => Aug[A])
       (implicit field: Field[A], space: Cartesian[V]): (V[A]) => (A, V[A]) = x => {
-    val value = f(space.tabulate(i => Aug(space.index(x)(i), field.zero)), DummyImplicit.dummyImplicit)._1
+    val value = f(space.tabulate(i => Aug(space.index(x)(i), field.zero)))(DummyImplicit.dummyImplicit)._1
     (value, grad(f)(field, space)(x))
-  }
-
-  override implicit def zero[A](implicit z: Zero[A]): Zero[Aug[A]] = new Zero[Aug[A]] {
-    override val zero: Aug[A] = Aug(z.zero, z.zero)
   }
 }

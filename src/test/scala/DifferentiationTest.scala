@@ -201,9 +201,9 @@ object DifferentiationTest extends Properties("Differentiation") {
   for ((name, engine) <- engines) {
     import engine._
     for (fun <- funs) {
-      def prepFun(x: Aug[Double], ctx: Context[Double]): Aug[Double] =
-        fun.value(x)(analytic(Floating.DoubleInst, ctx))
-      val computedDeriv = diffWithValue[Double](prepFun)
+      def prepFun(x: Aug[Double])(implicit ctx: Context[Double]): Aug[Double] =
+        fun.value(x)
+      val computedDeriv = diffWithValue[Double](inst => ctx => prepFun(inst)(ctx))
       property(s"$name.${fun.description}") = forAll { (x: Double) => {
         val eVal = fun.value(x)
         val eDiff = fun.deriv(x)

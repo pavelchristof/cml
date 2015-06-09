@@ -65,7 +65,7 @@ case class StochasticGradientDescent[In[_], Out[_]] (
         in.map(s._1)(diffEngine.constant(_)),
         out.map(s._2)(diffEngine.constant(_))))
 
-      val grad = diffEngine.grad[A, batchSubspace.Type]((inst, ctx) => {
+      val grad = diffEngine.grad[A, batchSubspace.Type](inst => implicit ctx => {
         implicit val augAn = diffEngine.analytic(fl, ctx)
         val injectedInst = subspace.inject(batchSubspace.inject(inst))
 
@@ -75,8 +75,8 @@ case class StochasticGradientDescent[In[_], Out[_]] (
           .reduce(augAn.add(_, _))
       })
 
-      val regGrad = diffEngine.grad[A, batchSubspace.Type]((inst, ctx) => {
-        implicit val augAn = diffEngine.analytic(fl, ctx)
+      val regGrad = diffEngine.grad[A, batchSubspace.Type](inst => implicit ctx => {
+        import diffEngine.analytic
         costFun.regularization[batchSubspace.Type, diffEngine.Aug[A]](inst)
       })
 
@@ -118,7 +118,7 @@ case class StochasticGradientDescent[In[_], Out[_]] (
       cost = totalCost(inst)
       println(s"Iteration $i: $cost")
 
-      if (cmp.lt(cost, bestCost)) {
+      if (!fl.isNaN(cost) && cmp.lt(cost, bestCost)) {
         bestInst = inst
         bestCost = cost
       }

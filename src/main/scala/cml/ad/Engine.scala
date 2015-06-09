@@ -24,27 +24,27 @@ trait Engine extends Serializable {
   /**
    * Injects a constant value into the augmented field.
    */
-  def constant[A](x: A)(implicit field: Field[A]): Aug[A]
+  def constant[A](x: A)(implicit a: Zero[A]): Aug[A]
 
   /**
    * Differentiates a function.
    */
-  def diff[A](f: (Aug[A], Context[A]) => Aug[A])(implicit field: Field[A]): (A) => A
+  def diff[A](f: (Aug[A]) => (Context[A]) => Aug[A])(implicit field: Field[A]): (A) => A
 
   /**
    * Computes a function value and its derivative.
    */
-  def diffWithValue[A](f: (Aug[A], Context[A]) => Aug[A])(implicit field: Field[A]): (A) => (A, A)
+  def diffWithValue[A](f: (Aug[A]) => (Context[A]) => Aug[A])(implicit field: Field[A]): (A) => (A, A)
 
   /**
    * Computes the gradient of a function taking a vector as the argument.
    */
-  def grad[A, V[_]](f: (V[Aug[A]], Context[A]) => Aug[A])
+  def grad[A, V[_]](f: (V[Aug[A]]) => (Context[A]) => Aug[A])
       (implicit field: Field[A], space: Cartesian[V]): (V[A]) => V[A]
 
   /**
    * Computes the value and gradient of a function taking a vector as the argument.
    */
-  def gradWithValue[A, V[_]](f: (V[Aug[A]], Context[A]) => Aug[A])
+  def gradWithValue[A, V[_]](f: (V[Aug[A]]) => (Context[A]) => Aug[A])
       (implicit field: Field[A], space: Cartesian[V]): (V[A]) => (A, V[A])
 }
