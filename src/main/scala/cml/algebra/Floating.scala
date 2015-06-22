@@ -11,6 +11,7 @@ trait Floating[A] extends Real[A] {
   val maxValue: A
   val nan: A
 
+  def isInfinite(a: A): Boolean
   def isNaN(a: A): Boolean
 }
 
@@ -57,6 +58,7 @@ object Floating {
     override val minValue: Float = Float.MinValue
     override val maxValue: Float = Float.MaxValue
     override val nan: Float = Float.NaN
+    override def isInfinite(x: Float): Boolean = x.isInfinite
     override def isNaN(x: Float): Boolean = x.isNaN
 
     override def runtimeClass: Class[_] = java.lang.Float.TYPE
@@ -104,6 +106,7 @@ object Floating {
     override val minValue: Double = Double.MinValue
     override val maxValue: Double = Double.MaxValue
     override val nan: Double = Double.NaN
+    override def isInfinite(x: Double): Boolean = x.isInfinite
     override def isNaN(x: Double): Boolean = x.isNaN
 
     override def runtimeClass: Class[_] = java.lang.Double.TYPE

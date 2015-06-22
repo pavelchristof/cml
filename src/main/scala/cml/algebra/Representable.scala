@@ -1,8 +1,5 @@
 package cml.algebra
 
-import scala.collection.immutable.HashMap
-import scala.reflect.ClassTag
-
 trait Representable[F[_]] extends Linear[F] with ZeroApplicative[F] {
   type Key
 
