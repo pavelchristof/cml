@@ -8,10 +8,10 @@ trait Optimizer[In[_], Out[_]] {
   def apply[A](
     batches: RDD[Seq[(In[A], Out[A])]],
     costFun: CostFun[In, Out],
-    initialInst: model.Type[A]
+    initialInst: model.Params[A]
   )(implicit
     fl: Floating[A],
     cmp: Ordering[A],
     diffEngine: ad.Engine
-  ): model.Type[A]
+  ): model.Params[A]
 }

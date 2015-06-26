@@ -18,12 +18,12 @@ trait Model[In[_], Out[_]] extends Serializable {
   /**
    * The type of model instances.
    */
-  type Type[A]
+  type Params[A]
 
   /**
    * Model instance is required to be a representable vector space.
    */
-  implicit val space: Representable[Type]
+  implicit val space: Representable[Params]
 
   /**
    * Applies the model to some input.
@@ -33,16 +33,16 @@ trait Model[In[_], Out[_]] extends Serializable {
    * @tparam A The numeric type.
    * @return The output.
    */
-  def apply[A](inst: Type[A])(input: In[A])(implicit a: Analytic[A]): Out[A]
+  def apply[A](inst: Params[A])(input: In[A])(implicit a: Analytic[A]): Out[A]
 
-  def applySample[A](inst: Type[A])(sample: (In[A], Out[A]))(implicit a: Analytic[A]): Sample[In[A], Out[A]] =
+  def applySample[A](inst: Params[A])(sample: (In[A], Out[A]))(implicit a: Analytic[A]): Sample[In[A], Out[A]] =
     Sample(
       input = sample._1,
       expected = sample._2,
       actual = apply(inst)(sample._1)
     )
 
-  def cost[A](data: Seq[(In[A], Out[A])], costFun: CostFun[In, Out])(implicit a: Floating[A]): (Type[A]) => A =
+  def cost[A](data: Seq[(In[A], Out[A])], costFun: CostFun[In, Out])(implicit a: Floating[A]): (Params[A]) => A =
     inst => {
       data
         .map(applySample(inst)(_))
@@ -50,8 +50,8 @@ trait Model[In[_], Out[_]] extends Serializable {
         .reduce(a.add(_, _))
     }
 
-  def reg[A](costFun: CostFun[In, Out])(normed: Normed[Type])(implicit a: Floating[A]): (Type[A]) => A =
-    inst => costFun.regularization[Type, A](inst)(a, normed)
+  def reg[A](costFun: CostFun[In, Out])(normed: Normed[Params])(implicit a: Floating[A]): (Params[A]) => A =
+    inst => costFun.regularization[Params, A](inst)(a, normed)
 
   def convertSample[A, B](s: (In[A], Out[A]))
       (implicit a: Floating[A], b: Analytic[B], inFunctor: ZeroFunctor[In], outFunctor: ZeroFunctor[Out]): (In[B], Out[B]) = {
@@ -60,7 +60,7 @@ trait Model[In[_], Out[_]] extends Serializable {
   }
 
   def restrict[A](data: Seq[(In[A], Out[A])], costFun: CostFun[In, Out])
-      (implicit a: Floating[A], inFunctor: ZeroFunctor[In], outFunctor: ZeroFunctor[Out]): Subspace[Type] = {
+      (implicit a: Floating[A], inFunctor: ZeroFunctor[In], outFunctor: ZeroFunctor[Out]): Subspace[Params] = {
     val keys = data
       .map(convertSample[A, Reflector[space.Key]])
       .map(sample => space.reflect(inst => costFun.scoreSample(Sample[In[Reflector[space.Key]], Out[Reflector[space.Key]]](
@@ -87,7 +87,7 @@ trait Model[In[_], Out[_]] extends Serializable {
 }
 
 trait ParameterlessModel[In[_], Out[_]] extends Model[In, Out] {
-  final override type Type[A] = Unit
+  final override type Params[A] = Unit
   final override val space = Cartesian.Zero
   final override def apply[A](inst: Unit)(in: In[A])(implicit a: Analytic[A]): Out[A] = apply(in)
 

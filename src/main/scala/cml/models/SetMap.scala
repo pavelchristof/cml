@@ -7,7 +7,7 @@ final case class SetMap[K, V[_]] (implicit
   valueSpace: Representable[V],
   ord: Ordering[K]
 ) extends Model[({type T[A] = K})#T, V] {
-  override type Type[A] = TotalMap[K, V[A]]
+  override type Params[A] = TotalMap[K, V[A]]
 
   implicit val mapSpace = TotalMap.representable[K](ord)
   override implicit val space =
@@ -15,6 +15,6 @@ final case class SetMap[K, V[_]] (implicit
 
   import ZeroEndofunctor.asZero
 
-  def apply[A](inst: Type[A])(input: K)(implicit field: Analytic[A]): V[A] =
+  def apply[A](inst: Params[A])(input: K)(implicit field: Analytic[A]): V[A] =
     mapSpace.index(inst)(input)
 }

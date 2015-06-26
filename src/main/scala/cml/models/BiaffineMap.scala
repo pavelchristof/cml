@@ -10,11 +10,11 @@ final case class BiaffineMap[In1[_], In2[_], Out[_]] (implicit
   outSpace: Cartesian[Out]
 ) extends Model[({type T[A] = (In1[A], In2[A])})#T, Out] {
   implicit val affineMap = AffineMap[In2, Out]()(in2Space, outSpace)
-  implicit val biaffineMap = AffineMap[In1, affineMap.Type]()(in1Space, affineMap.space)
+  implicit val biaffineMap = AffineMap[In1, affineMap.Params]()(in1Space, affineMap.space)
 
-  override type Type[A] = AffineMap[In1, affineMap.Type]#Type[A]
+  override type Params[A] = AffineMap[In1, affineMap.Params]#Params[A]
   override implicit val space = biaffineMap.space
 
-  override def apply[F](inst: Type[F])(input: (In1[F], In2[F]))(implicit an: Analytic[F]): Out[F] =
+  override def apply[F](inst: Params[F])(input: (In1[F], In2[F]))(implicit an: Analytic[F]): Out[F] =
     affineMap(biaffineMap(inst)(input._1))(input._2)
 }

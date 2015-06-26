@@ -11,10 +11,10 @@ final case class BifunctorMap[F[_, _], A1[_], A2[_], B1[_], B2[_]] (
 ) (implicit
   f: T forSome {type T <: Bifunctor[F] with Serializable}
 ) extends Model[({type T[A] = F[A1[A], B1[A]]})#T, ({type T[A] = F[A2[A], B2[A]]})#T] {
-  override type Type[A] = (left.Type[A], right.Type[A])
+  override type Params[A] = (left.Params[A], right.Params[A])
 
   override implicit val space = Representable.product(left.space, right.space)
 
-  override def apply[A](inst: Type[A])(input: F[A1[A], B1[A]])(implicit a: Analytic[A]): F[A2[A], B2[A]] =
+  override def apply[A](inst: Params[A])(input: F[A1[A], B1[A]])(implicit a: Analytic[A]): F[A2[A], B2[A]] =
     f.bimap(input)(left(inst._1)(_), right(inst._2)(_))
 }
