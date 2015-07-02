@@ -11,8 +11,8 @@ case class StochasticGradientDescent[In[_], Out[_]] (
   iterations: Int,
   gradTrans: GradTrans = Stabilize
 )(implicit
-  in: ZeroFunctor[In],
-  out: ZeroFunctor[Out]
+  in: Functor[In],
+  out: Functor[Out]
 ) extends Optimizer[In, Out] {
 
   def apply[A](
@@ -24,7 +24,7 @@ case class StochasticGradientDescent[In[_], Out[_]] (
     cmp: Ordering[A],
     diffEngine: ad.Engine
   ): model.Params[A] = {
-    import ZeroEndofunctor.asZero
+    import ClassTag1.asClassTag
     import diffEngine.zero
 
     val batches = batchesRDD.collect().toVector

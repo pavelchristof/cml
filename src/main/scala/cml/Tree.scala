@@ -1,9 +1,9 @@
 package cml
 
-import cml.algebra.{Zero, ZeroFunctor}
-import com.esotericsoftware.kryo.DefaultSerializer
+import cml.algebra.Functor
 
-import scalaz._
+import scala.reflect.ClassTag
+import scalaz.{Applicative, Bitraverse, Apply, Traverse1}
 
 sealed trait Tree[+A, +B] extends Serializable {
   val accum: A
@@ -50,19 +50,29 @@ case class Leaf[+A, +B] (
 }
 
 object Tree {
-  implicit def accumsZero[V] = new ZeroFunctor[({type T[A] = Tree[A, V]})#T] {
-    override def map[A, B](v: Tree[A, V])(h: (A) => B)(implicit az: Zero[A], bz: Zero[B]): Tree[B, V] =
+  implicit def accumsZero[V] = new Functor[({type T[A] = Tree[A, V]})#T] {
+    override def map[A, B](v: Tree[A, V])(h: (A) => B)(implicit az: ClassTag[A], bz: ClassTag[B]): Tree[B, V] =
       v match {
         case Leaf(a, v) => Leaf(h(a), v)
         case Node(l, a, r) => Node(map(l)(h), h(a), map(r)(h))
       }
+
+    override def classTag[A](implicit a: ClassTag[A]): ClassTag[Tree[A, V]] =
+      new ClassTag[Tree[A, V]] {
+        def runtimeClass = classOf[Tree[A, V]]
+      }
   }
 
-  implicit def valuesZero[V] = new ZeroFunctor[({type T[A] = Tree[V, A]})#T] {
-    override def map[A, B](v: Tree[V, A])(h: (A) => B)(implicit az: Zero[A], bz: Zero[B]): Tree[V, B] =
+  implicit def valuesZero[V] = new Functor[({type T[A] = Tree[V, A]})#T] {
+    override def map[A, B](v: Tree[V, A])(h: (A) => B)(implicit az: ClassTag[A], bz: ClassTag[B]): Tree[V, B] =
       v match {
         case Leaf(a, v) => Leaf(a, h(v))
         case Node(l, a, r) => Node(map(l)(h), a, map(r)(h))
+      }
+
+    override def classTag[A](implicit a: ClassTag[A]): ClassTag[Tree[V, A]] =
+      new ClassTag[Tree[V, A]] {
+        def runtimeClass = classOf[Tree[V, A]]
       }
   }
 

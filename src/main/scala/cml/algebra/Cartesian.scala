@@ -4,6 +4,8 @@ import cml.algebra.Subspace.WholeSpace
 import shapeless.Nat
 import shapeless.ops.nat.ToInt
 
+import scala.reflect.ClassTag
+
 /**
  * A functor that maps field F to the cartesian space F&#94;n for some natural number n.
  */
@@ -31,7 +33,7 @@ trait Cartesian[F[_]] extends Normed[F] {
 }
 
 object Cartesian {
-  import ZeroEndofunctor.asZero
+  import ClassTag1.asClassTag
 
   class Product[F[_], G[_]] (implicit override val f: Cartesian[F], override val g: Cartesian[G])
     extends Representable.Product[F, G] with Cartesian[({type T[A] = (F[A], G[A])})#T] {
@@ -80,19 +82,24 @@ object Cartesian {
 
     override def zero[A](implicit a: Zero[A]): Unit = ()
 
-    override def tabulate[A](v: (Void) => A)(implicit a: Zero[A]): Unit = ()
+    override def tabulate[A](v: (Void) => A)(implicit a: ClassTag[A]): Unit = ()
 
     override def sum[A](v: Unit)(implicit a: Additive[A]): A = a.zero
 
-    override def index[A](v: Unit)(k: Void)(implicit a: Zero[A]): A =
+    override def index[A](v: Unit)(k: Void)(implicit a: ClassTag[A]): A =
       throw new NoSuchElementException
 
     override def apply2[A, B, C](x: Unit, y: Unit)(h: (A, B) => C)
-        (implicit a: Zero[A], b: Zero[B], c: Zero[C]): Unit = ()
+        (implicit a: ClassTag[A], b: ClassTag[B], c: ClassTag[C]): Unit = ()
 
-    override def map[A, B](v: Unit)(h: (A) => B)(implicit a: Zero[A], b: Zero[B]): Unit = ()
+    override def map[A, B](v: Unit)(h: (A) => B)(implicit a: ClassTag[A], b: ClassTag[B]): Unit = ()
 
     override def restrict(keys: => Set[Void]) = new WholeSpace[({type T[A] = Unit})#T]()(this)
+
+    override implicit def classTag[A](implicit a: ClassTag[A]): ClassTag[Unit] =
+      new ClassTag[Unit] {
+        override def runtimeClass: Class[_] = classOf[Unit]
+      }
   }
 
   implicit object Scalar extends Cartesian[({type T[A] = A})#T] {
@@ -106,25 +113,30 @@ object Cartesian {
 
     override def zero[A](implicit a: Zero[A]): A = a.zero
 
-    override def map[A, B](v: A)(h: (A) => B)(implicit a: Zero[A], b: Zero[B]): B = h(v)
+    override def map[A, B](v: A)(h: (A) => B)(implicit a: ClassTag[A], b: ClassTag[B]): B = h(v)
 
     override def apply2[A, B, C](x: A, y: B)(h: (A, B) => C)
-        (implicit a: Zero[A], b: Zero[B], c: Zero[C]): C = h(x, y)
+        (implicit a: ClassTag[A], b: ClassTag[B], c: ClassTag[C]): C = h(x, y)
 
     override def zip[A, B](x: A, y: B)
-        (implicit a: Zero[A], b: Zero[B]): (A, B) = (x, y)
+        (implicit a: ClassTag[A], b: ClassTag[B]): (A, B) = (x, y)
 
     override def ap[A, B](x: A)(h: (A) => B)
-        (implicit a: Zero[A], b: Zero[B]): B = h(x)
+        (implicit a: ClassTag[A], b: ClassTag[B]): B = h(x)
 
-    override def point[A](x: A)(implicit a: Zero[A]): A = x
+    override def point[A](x: A)(implicit a: ClassTag[A]): A = x
 
-    override def tabulate[A](v: (Unit) => A)(implicit a: Zero[A]): A = v()
+    override def tabulate[A](v: (Unit) => A)(implicit a: ClassTag[A]): A = v()
 
-    override def index[A](v: A)(k: Unit)(implicit a: Zero[A]): A = v
+    override def index[A](v: A)(k: Unit)(implicit a: ClassTag[A]): A = v
 
     override def sum[A](v: A)(implicit a: Additive[A]): A = v
 
     override def restrict(keys: => Set[Unit]) = new WholeSpace[({type T[A] = A})#T]()(this)
+
+    override def classTag[A](implicit a: ClassTag[A]): ClassTag[A] =
+      new ClassTag[A] {
+        override def runtimeClass: Class[_] = a.runtimeClass
+      }
   }
 }

@@ -13,7 +13,7 @@ final case class SetMap[K, V[_]] (implicit
   override implicit val space =
     Representable.compose[({type T[A] = TotalMap[K, A]})#T, V](mapSpace, valueSpace)
 
-  import ZeroEndofunctor.asZero
+  import ClassTag1.asClassTag
 
   def apply[A](inst: Params[A])(input: K)(implicit field: Analytic[A]): V[A] =
     mapSpace.index(inst)(input)

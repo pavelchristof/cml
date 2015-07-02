@@ -16,7 +16,6 @@ final case class AffineMap[In[_], Out[_]] (implicit
 
   override def apply[F](inst: Params[F])(input: In[F])(implicit a: Analytic[F]): Out[F] = {
     import a.analyticSyntax._
-    import ZeroEndofunctor.asZero
     outSpace.map(inst)(v => inSpace.dot(input, v._1) + v._2)
   }
 }

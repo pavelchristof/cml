@@ -3,7 +3,7 @@ package cml.algebra
 /**
  * A functor that maps commutative groups to commutative groups.
  */
-trait Additive1[F[_]] extends ZeroApply[F] {
+trait Additive1[F[_]] extends Zero1[F] {
   def add[A](x: F[A], y: F[A])(implicit a: Additive[A]): F[A] =
     apply2(x, y)(a.add)
   def sub[A](x: F[A], y: F[A])(implicit a: Additive[A]): F[A] =
@@ -14,7 +14,7 @@ trait Additive1[F[_]] extends ZeroApply[F] {
 
 object Additive1 {
   class AsAdditive[F[_], A] (implicit f: Additive1[F], a: Additive[A])
-    extends ZeroEndofunctor.AsZero[F, A] with Additive[F[A]] {
+    extends Zero1.AsZero[F, A] with Additive[F[A]] {
     override def add(x: F[A], y: F[A]): F[A] = f.add(x, y)
     override def sub(x: F[A], y: F[A]): F[A] = f.sub(x, y)
     override def neg(x: F[A]): F[A] = f.neg(x)
@@ -23,7 +23,7 @@ object Additive1 {
   implicit def asAdditive[F[_], A](implicit f: Additive1[F], a: Additive[A]) = new AsAdditive[F, A]
 
   class Product[F[_], G[_]] (implicit f: Additive1[F], g: Additive1[G])
-    extends ZeroApply.Product[F, G] with Additive1[({type T[A] = (F[A], G[A])})#T] {
+    extends Zero1.Product[F, G] with Additive1[({type T[A] = (F[A], G[A])})#T] {
     override def add[A](x: (F[A], G[A]), y: (F[A], G[A]))(implicit a: Additive[A]): (F[A], G[A]) =
       (f.add(x._1, y._1), g.add(x._2, y._2))
     override def sub[A](x: (F[A], G[A]), y: (F[A], G[A]))(implicit a: Additive[A]): (F[A], G[A]) =
@@ -35,7 +35,7 @@ object Additive1 {
   implicit def product[F[_], G[_]](implicit f: Additive1[F], g: Additive1[G]) = new Product[F, G]
 
   class Compose[F[_], G[_]] (implicit f: Additive1[F], g: Additive1[G])
-    extends ZeroApply.Compose[F, G] with Additive1[({type T[A] = F[G[A]]})#T] {
+    extends Zero1.Compose[F, G] with Additive1[({type T[A] = F[G[A]]})#T] {
     override def add[A](x: F[G[A]], y: F[G[A]])(implicit a: Additive[A]): F[G[A]] =
       f.add(x, y)
     override def sub[A](x: F[G[A]], y: F[G[A]])(implicit a: Additive[A]): F[G[A]] =

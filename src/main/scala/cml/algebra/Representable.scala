@@ -1,17 +1,19 @@
 package cml.algebra
 
-trait Representable[F[_]] extends Linear[F] with ZeroApplicative[F] {
+import scala.reflect.ClassTag
+
+trait Representable[F[_]] extends Linear[F] with Applicative[F] {
   type Key
 
   /**
    * Extracts the coefficient at the given key.
    */
-  def index[A](v: F[A])(k: Key)(implicit a: Zero[A]): A
+  def index[A](v: F[A])(k: Key)(implicit a: ClassTag[A]): A
 
   /**
    * Creates a vector with coordinates given by a function.
    */
-  def tabulate[A](v: (Key) => A)(implicit a: Zero[A]): F[A]
+  def tabulate[A](v: (Key) => A)(implicit a: ClassTag[A]): F[A]
 
   /**
    * Creates a new vector from a map. Coefficients for keys not in the map are zero.
@@ -21,7 +23,7 @@ trait Representable[F[_]] extends Linear[F] with ZeroApplicative[F] {
   /**
    * Lifts a value.
    */
-  override def point[A](x: A)(implicit a: Zero[A]): F[A] = tabulate(_ => x)
+  override def point[A](x: A)(implicit a: ClassTag[A]): F[A] = tabulate(_ => x)
 
   /**
    * Returns a finitely-dimensional subspace of F, spanned (at least) by the unit vectors with
@@ -41,18 +43,19 @@ trait Representable[F[_]] extends Linear[F] with ZeroApplicative[F] {
 }
 
 object Representable {
-  import ZeroEndofunctor.asZero
+  import ClassTag1.asClassTag
+  import Zero1.asZero
 
   abstract class ProductBase[F[_], G[_]] (implicit val f: Representable[F], val g: Representable[G])
     extends Linear.Product[F, G] with Representable[({type T[+A] = (F[A], G[A])})#T] {
     override type Key = Either[f.Key, g.Key]
 
-    override def index[A](v: (F[A], G[A]))(k: Key)(implicit a: Zero[A]): A = k match {
+    override def index[A](v: (F[A], G[A]))(k: Key)(implicit a: ClassTag[A]): A = k match {
       case Left(i) => f.index(v._1)(i)
       case Right(i) => g.index(v._2)(i)
     }
 
-    override def tabulate[A](v: (Key) => A)(implicit a: Zero[A]): (F[A], G[A]) =
+    override def tabulate[A](v: (Key) => A)(implicit a: ClassTag[A]): (F[A], G[A]) =
       (f.tabulate(k => v(Left(k))), g.tabulate(k => v(Right(k))))
 
     override def tabulatePartial[A](v: Map[Key, A])(implicit a: Zero[A]): (F[A], G[A]) = {
@@ -61,7 +64,7 @@ object Representable {
       (f.tabulatePartial(lefts.toMap), g.tabulatePartial(rights.toMap))
     }
 
-    override def point[A](x: A)(implicit a: Zero[A]): (F[A], G[A]) =
+    override def point[A](x: A)(implicit a: ClassTag[A]): (F[A], G[A]) =
       (f.point(x), g.point(x))
   }
 
@@ -80,11 +83,11 @@ object Representable {
     extends Linear.Compose[F, G] with Representable[({type T[+A] = F[G[A]]})#T] {
     override type Key = (f.Key, g.Key)
 
-    override def index[A](v: F[G[A]])(k: Key)(implicit a: Zero[A]): A =
-      g.index(f.index(v)(k._1)(asZero[G, A]))(k._2)
+    override def index[A](v: F[G[A]])(k: Key)(implicit a: ClassTag[A]): A =
+      g.index(f.index(v)(k._1)(asClassTag[G, A]))(k._2)
 
-    override def tabulate[A](v: (Key) => A)(implicit a: Zero[A]): F[G[A]] =
-      f.tabulate(i => g.tabulate(j => v((i, j))))(asZero[G, A])
+    override def tabulate[A](v: (Key) => A)(implicit a: ClassTag[A]): F[G[A]] =
+      f.tabulate(i => g.tabulate(j => v((i, j))))(asClassTag[G, A])
 
     override def tabulatePartial[A](v: Map[Key, A])(implicit a: Zero[A]): F[G[A]] = {
       val u: Map[f.Key, Map[g.Key, A]] = v
@@ -93,8 +96,8 @@ object Representable {
       f.tabulatePartial(u.mapValues(g.tabulatePartial(_)))(asZero[G, A])
     }
 
-    override def point[A](x: A)(implicit a: Zero[A]): F[G[A]] =
-      f.point(g.point(x))(asZero[G, A])
+    override def point[A](x: A)(implicit a: ClassTag[A]): F[G[A]] =
+      f.point(g.point(x))(asClassTag[G, A])
   }
 
   class Compose[F[_], G[_]] (implicit override val f: Representable[F], override val g: Representable[G])

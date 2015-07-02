@@ -2,6 +2,8 @@ package cml.algebra
 
 import java.util
 
+import scala.reflect.ClassTag
+
 case class TotalMap[K, V] (
   keys: Vector[K],
   hashes: Array[Int],
@@ -16,11 +18,11 @@ object TotalMap {
     override def zero[A](implicit a: Zero[A]): TotalMap[K, A] =
       TotalMap(Vector.empty, Array.empty, Array.empty, _ => a.zero)
 
-    override def map[A, B](v: TotalMap[K, A])(h: (A) => B)(implicit a: Zero[A], b: Zero[B]): TotalMap[K, B] =
+    override def map[A, B](v: TotalMap[K, A])(h: (A) => B)(implicit a: ClassTag[A], b: ClassTag[B]): TotalMap[K, B] =
       TotalMap(v.keys, v.hashes, v.values.map(h), v.default.andThen(h))
 
     override def apply2[A, B, C](x: TotalMap[K, A], y: TotalMap[K, B])(h: (A, B) => C)
-        (implicit a: Zero[A], b: Zero[B], c: Zero[C]): TotalMap[K, C] = {
+        (implicit a: ClassTag[A], b: ClassTag[B], c: ClassTag[C]): TotalMap[K, C] = {
       val keys = Vector.newBuilder[K]
       val hashes = Array.newBuilder[Int]
       val values = Array.newBuilder[C]
@@ -72,7 +74,7 @@ object TotalMap {
       TotalMap(keys.result(), hashes.result(), values.result(), k => h(x.default(k), y.default(k)))
     }
 
-    override def tabulate[A](v: (K) => A)(implicit a: Zero[A]): TotalMap[K, A] =
+    override def tabulate[A](v: (K) => A)(implicit a: ClassTag[A]): TotalMap[K, A] =
       TotalMap(Vector.empty, Array.empty, Array.empty, v)
 
     override def tabulatePartial[A](v: Map[K, A])(implicit a: Zero[A]): TotalMap[K, A] = {
@@ -85,7 +87,7 @@ object TotalMap {
       TotalMap(keys.toVector, hashes.toArray, values.toArray, _ => a.zero)
     }
 
-    override def index[A](v: TotalMap[K, A])(k: K)(implicit a: Zero[A]): A = {
+    override def index[A](v: TotalMap[K, A])(k: K)(implicit a: ClassTag[A]): A = {
       indexOf(v.keys, v.hashes, k, k.hashCode()) match {
         case Some(i) => v.values(i)
         case None => v.default(k)
@@ -125,22 +127,25 @@ object TotalMap {
         val values = new Array[A](allKeys.size)
         var i = 0
         while (i < allKeys.size) {
-          values(i) = indexOf(v.keys, v.hashes, allKeys(i), allHashes(i)) match {
-            case Some(j) => v.values(j)
-            case None => v.default(allKeys(i))
-          }
+          values(i) = index(v)(allKeys(i))
           i += 1
         }
-        PartialMap(allKeys, allHashes, values)
+        PartialMap(allKeys, allHashes, values, _ => a.zero)
       }
 
       override def inject[A](v: PartialMap[K, A])(implicit a: Zero[A]): TotalMap[K, A] = {
-        TotalMap(v.keys, v.hashes, v.values, _ => a.zero)
+        TotalMap(v.keys, v.hashes, v.values, (k: Key) =>
+          if (keySet.contains(k)) v.default(k) else a.zero)
       }
 
-      override implicit val space: Cartesian[Type] =
+      override implicit val space: PartialMap.CartesianInst[K] =
         PartialMap.CartesianInst(allKeys, allHashes)
     }
+
+    override def classTag[A](implicit a: ClassTag[A]): ClassTag[TotalMap[K, A]] =
+      new ClassTag[TotalMap[K, A]] {
+        override def runtimeClass: Class[_] = classOf[TotalMap[K, A]]
+      }
   }
 
   def representable[K](implicit ord: Ordering[K]) = new RepresentableInst[K]()

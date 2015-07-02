@@ -23,7 +23,7 @@ trait Subspace[F[_]] extends Serializable {
 }
 
 object Subspace {
-  import ZeroEndofunctor.asZero
+  import Zero1.asZero
 
   class Product[F[_], G[_], FS <: Subspace[F], GS <: Subspace[G]] (val _1: FS, val _2: GS)
     extends Subspace[({type T[A] = (F[A], G[A])})#T] {
@@ -40,7 +40,7 @@ object Subspace {
   }
 
   class Compose[F[_], G[_], FS <: Subspace[F], GS <: Subspace[G]] (val f: FS, val g: GS)
-      (implicit fs: ZeroEndofunctor[F], gs: ZeroEndofunctor[G])
+      (implicit fs: Zero1[F], gs: Zero1[G])
     extends Subspace[({type T[A] = F[G[A]]})#T] {
     override type Type[A] = f.Type[g.Type[A]]
 

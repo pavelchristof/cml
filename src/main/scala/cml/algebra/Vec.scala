@@ -4,6 +4,8 @@ import cml.algebra.Subspace.WholeSpace
 import shapeless.Nat
 import shapeless.ops.nat.ToInt
 
+import scala.reflect.ClassTag
+
 case class Vec[S <: Nat, A] (
   get: Array[A]
 ) extends Serializable {
@@ -24,28 +26,28 @@ object Vec {
     override def zero[A](implicit a: Zero[A]): Vec[S, A] =
       Vec(Array.fill(dim)(a.zero))
 
-    override def map[A, B](v: Vec[S, A])(h: (A) => B)(implicit a: Zero[A], b: Zero[B]): Vec[S, B] =
+    override def map[A, B](v: Vec[S, A])(h: (A) => B)(implicit a: ClassTag[A], b: ClassTag[B]): Vec[S, B] =
       Vec(Array.tabulate(dim)(i => h(v.get(i))))
 
     override def apply2[A, B, C](x: Vec[S, A], y: Vec[S, B])(h: (A, B) => C)
-        (implicit a: Zero[A], b: Zero[B], c: Zero[C]): Vec[S, C] =
+        (implicit a: ClassTag[A], b: ClassTag[B], c: ClassTag[C]): Vec[S, C] =
       Vec(Array.tabulate(dim)(i => h(x.get(i), y.get(i))))
 
     override def zip[A, B](x: Vec[S, A], y: Vec[S, B])
-        (implicit a: Zero[A], b: Zero[B]): Vec[S, (A, B)] =
+        (implicit a: ClassTag[A], b: ClassTag[B]): Vec[S, (A, B)] =
       Vec(Array.tabulate(dim)(i => (x.get(i), y.get(i))))
 
     override def ap[A, B](x: Vec[S, A])(h: Vec[S, (A) => B])
-        (implicit a: Zero[A], b: Zero[B]): Vec[S, B] =
+        (implicit a: ClassTag[A], b: ClassTag[B]): Vec[S, B] =
       Vec(Array.tabulate(dim)(i => h.get(i)(x.get(i))))
 
-    override def point[A](x: A)(implicit a: Zero[A]): Vec[S, A] =
+    override def point[A](x: A)(implicit a: ClassTag[A]): Vec[S, A] =
       Vec(Array.fill(dim)(x))
 
-    override def tabulate[A](v: (Int) => A)(implicit a: Zero[A]): Vec[S, A] =
+    override def tabulate[A](v: (Int) => A)(implicit a: ClassTag[A]): Vec[S, A] =
       Vec(Array.tabulate(dim)(v))
 
-    override def index[A](v: Vec[S, A])(k: Int)(implicit a: Zero[A]): A =
+    override def index[A](v: Vec[S, A])(k: Int)(implicit a: ClassTag[A]): A =
       v.get(k)
 
     override def sum[A](v: Vec[S, A])(implicit a: Additive[A]): A =
@@ -72,10 +74,15 @@ object Vec {
           }
 
           override def project[A](v: Vec[S, A])(implicit a: Zero[A]): Vec[size.Type, A] =
-            space.tabulate(i => v.get(indices(i)))
+            space.tabulate((i: Int) => v.get(indices(i)))
 
           override implicit val space = cartesian(size())
         }
+
+    override def classTag[A](implicit a: ClassTag[A]): ClassTag[Vec[S, A]] =
+      new ClassTag[Vec[S, A]] {
+        def runtimeClass = classOf[Vec[S, A]]
+      }
   }
 
   implicit def cartesian[S <: Nat](implicit toInt: ToInt[S]) = new CartesianImpl[S](toInt)

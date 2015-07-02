@@ -19,7 +19,7 @@ trait Normed[F[_]] extends Representable[F] {
 }
 
 object Normed {
-  import ZeroEndofunctor.asZero
+  import ClassTag1.asClassTag
 
   class Product[F[_], G[_]] (implicit override val f: Normed[F], override val g: Normed[G])
     extends Representable.Product[F, G] with Normed[({type T[A] = (F[A], G[A])})#T] {

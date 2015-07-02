@@ -54,13 +54,13 @@ trait Model[In[_], Out[_]] extends Serializable {
     inst => costFun.regularization[Params, A](inst)(a, normed)
 
   def convertSample[A, B](s: (In[A], Out[A]))
-      (implicit a: Floating[A], b: Analytic[B], inFunctor: ZeroFunctor[In], outFunctor: ZeroFunctor[Out]): (In[B], Out[B]) = {
+      (implicit a: Floating[A], b: Analytic[B], inFunctor: Functor[In], outFunctor: Functor[Out]): (In[B], Out[B]) = {
     def convert(x: A): B = b.fromDouble(a.toDouble(x))
     (inFunctor.map(s._1)(convert), outFunctor.map(s._2)(convert))
   }
 
   def restrict[A](data: Seq[(In[A], Out[A])], costFun: CostFun[In, Out])
-      (implicit a: Floating[A], inFunctor: ZeroFunctor[In], outFunctor: ZeroFunctor[Out]): Subspace[Params] = {
+      (implicit a: Floating[A], inFunctor: Functor[In], outFunctor: Functor[Out]): Subspace[Params] = {
     val keys = data
       .map(convertSample[A, Reflector[space.Key]])
       .map(sample => space.reflect(inst => costFun.scoreSample(Sample[In[Reflector[space.Key]], Out[Reflector[space.Key]]](
@@ -73,7 +73,7 @@ trait Model[In[_], Out[_]] extends Serializable {
   }
 
   def restrictRDD[A](data: RDD[(In[A], Out[A])], costFun: CostFun[In, Out])
-      (implicit a: Floating[A], inFunctor: ZeroFunctor[In], outFunctor: ZeroFunctor[Out]) = {
+      (implicit a: Floating[A], inFunctor: Functor[In], outFunctor: Functor[Out]) = {
     val keys = data
       .map(convertSample[A, Reflector[space.Key]])
       .map(sample => space.reflect(inst => costFun.scoreSample(Sample[In[Reflector[space.Key]], Out[Reflector[space.Key]]](
