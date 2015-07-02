@@ -3,11 +3,6 @@ package cml
 import cml.algebra._
 import org.apache.spark.rdd.RDD
 
-trait Category[Hom[_, _]] {
-  def identity[A]: Hom[A, A]
-  def compose[A, B, C](f: Hom[B, C], g: Hom[A, B]): Hom[A, C]
-}
-
 /**
  * Machine learning models expressible as a differentiable function, mapping some input to some output.
  *
@@ -16,30 +11,30 @@ trait Category[Hom[_, _]] {
  */
 trait Model[In[_], Out[_]] extends Serializable {
   /**
-   * The type of model instances.
+   * The space of parameters.
    */
   type Params[A]
 
   /**
-   * Model instance is required to be a representable vector space.
+   * Parameters must form a representable vector space.
    */
   implicit val space: Representable[Params]
 
   /**
    * Applies the model to some input.
    * @param input The input.
-   * @param inst The model instance.
-   * @param a Numeric operations.
-   * @tparam A The numeric type.
+   * @param params The model parameters.
+   * @param a Number operations (like addition, multiplication, trigonometric functions).
+   * @tparam A The number type.
    * @return The output.
    */
-  def apply[A](inst: Params[A])(input: In[A])(implicit a: Analytic[A]): Out[A]
+  def apply[A](params: Params[A])(input: In[A])(implicit a: Analytic[A]): Out[A]
 
-  def applySample[A](inst: Params[A])(sample: (In[A], Out[A]))(implicit a: Analytic[A]): Sample[In[A], Out[A]] =
+  def applySample[A](params: Params[A])(sample: (In[A], Out[A]))(implicit a: Analytic[A]): Sample[In[A], Out[A]] =
     Sample(
       input = sample._1,
       expected = sample._2,
-      actual = apply(inst)(sample._1)
+      actual = apply(params)(sample._1)
     )
 
   def cost[A](data: Seq[(In[A], Out[A])], costFun: CostFun[In, Out])(implicit a: Floating[A]): (Params[A]) => A =
