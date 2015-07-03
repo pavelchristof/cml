@@ -25,7 +25,7 @@ trait Subspace[F[_]] extends Serializable {
 object Subspace {
   import Zero1.asZero
 
-  class Product[F[_], G[_], FS <: Subspace[F], GS <: Subspace[G]] (val _1: FS, val _2: GS)
+  class Product[F[_], G[_]] (val _1: Subspace[F], val _2: Subspace[G])
     extends Subspace[({type T[A] = (F[A], G[A])})#T] {
     override type Type[A] = (_1.Type[A], _2.Type[A])
 
@@ -39,7 +39,7 @@ object Subspace {
       Cartesian.product[_1.Type, _2.Type](_1.space, _2.space)
   }
 
-  class Compose[F[_], G[_], FS <: Subspace[F], GS <: Subspace[G]] (val f: FS, val g: GS)
+  class Compose[F[_], G[_]] (val f: Subspace[F], val g: Subspace[G])
       (implicit fs: Zero1[F], gs: Zero1[G])
     extends Subspace[({type T[A] = F[G[A]]})#T] {
     override type Type[A] = f.Type[g.Type[A]]
