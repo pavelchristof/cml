@@ -16,7 +16,7 @@ final case class MonoMapReduce[F, E, V[_]] (
 ) extends Model[({type T[A] = F})#T, V] {
   type Params[A] = (map.Params[A], reduce.Params[A])
 
-  override implicit val space = Representable.product(map.space, reduce.space)
+  override implicit val params = Representable.product(map.params, reduce.params)
 
   override def apply[A](inst: Params[A])(input: F)(implicit a: Analytic[A]): V[A] =
     monoFoldable.foldMap1[V[A]](input)(

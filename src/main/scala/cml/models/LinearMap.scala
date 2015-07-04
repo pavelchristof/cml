@@ -11,7 +11,7 @@ case class LinearMap[In[_], Out[_]] (
 ) extends Model[In, Out] {
   override type Params[A] = Out[In[A]]
 
-  override implicit val space = Cartesian.compose[Out, In](outSpace, inSpace)
+  override implicit val params = Cartesian.compose[Out, In](outSpace, inSpace)
 
   import ClassTag1.asClassTag
 

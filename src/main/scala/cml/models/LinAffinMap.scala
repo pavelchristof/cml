@@ -10,10 +10,10 @@ final case class LinAffinMap[In1[_], In2[_], Out[_]] (implicit
   outSpace: Cartesian[Out]
 ) extends Model[({type T[A] = (In1[A], In2[A])})#T, Out] {
   implicit val affineMap = AffineMap[In2, Out]()(in2Space, outSpace)
-  implicit val linAffinMap = LinearMap[In1, affineMap.Params]()(in1Space, affineMap.space)
+  implicit val linAffinMap = LinearMap[In1, affineMap.Params]()(in1Space, affineMap.params)
 
   override type Params[A] = LinearMap[In1, affineMap.Params]#Params[A]
-  override implicit val space = linAffinMap.space
+  override implicit val params = linAffinMap.params
 
   override def apply[A](inst: Params[A])(input: (In1[A], In2[A]))(implicit a: Analytic[A]): Out[A] =
     affineMap(linAffinMap(inst)(input._1))(input._2)

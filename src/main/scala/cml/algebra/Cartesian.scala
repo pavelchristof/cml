@@ -1,8 +1,6 @@
 package cml.algebra
 
 import cml.algebra.Subspace.WholeSpace
-import shapeless.Nat
-import shapeless.ops.nat.ToInt
 
 import scala.reflect.ClassTag
 
@@ -30,6 +28,12 @@ trait Cartesian[F[_]] extends Normed[F] {
    */
   override def tabulatePartial[A](v: Map[Key, A])(implicit a: Zero[A]): F[A] =
     tabulate(k => v.getOrElse(k, a.zero))
+
+  def fromSeq[A](v: Seq[A])(implicit a: ClassTag[A]): Option[F[A]] =
+    if (v.size < dim)
+      None
+    else
+      Some(tabulate(k => v(keyToInt(k))))
 }
 
 object Cartesian {

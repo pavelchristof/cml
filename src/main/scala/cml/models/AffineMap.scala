@@ -10,7 +10,7 @@ final case class AffineMap[In[_], Out[_]] (implicit
 ) extends Model[In, Out] {
   override type Params[A] = Out[(In[A], A)]
 
-  override implicit val space =
+  override implicit val params =
     Cartesian.compose[Out, ({type T[A] = (In[A], A)})#T](
       outSpace, Cartesian.product[In, ({type T[A] = A})#T](inSpace, Cartesian.Scalar))
 

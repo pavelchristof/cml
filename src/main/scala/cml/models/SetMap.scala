@@ -10,7 +10,7 @@ final case class SetMap[K, V[_]] (implicit
   override type Params[A] = TotalMap[K, V[A]]
 
   implicit val mapSpace = TotalMap.representable[K](ord)
-  override implicit val space =
+  override implicit val params =
     Representable.compose[({type T[A] = TotalMap[K, A]})#T, V](mapSpace, valueSpace)
 
   import ClassTag1.asClassTag

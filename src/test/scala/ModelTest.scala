@@ -63,7 +63,7 @@ object ModelTest extends App {
   )
 
   var rng = new Random()
-  val initialInst = optimizer.model.space.tabulate(_ => rng.nextDouble() * 2 - 1)
+  val initialInst = optimizer.model.params.tabulate(_ => rng.nextDouble() * 2 - 1)
 
   val learned = optimizer[Double](
       data,

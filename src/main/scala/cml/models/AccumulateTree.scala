@@ -10,7 +10,7 @@ final case class AccumulateTree[F[_], G[_]] (
 ) extends Model[({type T[A] = Tree[Unit, F[A]]})#T, ({type T[A] = Tree[G[A], F[A]]})#T] {
   override type Params[A] = (inject.Params[A], reduce.Params[A])
 
-  override implicit val space = Representable.product(inject.space, reduce.space)
+  override implicit val params = Representable.product(inject.params, reduce.params)
 
   override def apply[A](inst: Params[A])(input: Tree[Unit, F[A]])(implicit a: Analytic[A]): Tree[G[A], F[A]] =
     input match {

@@ -18,7 +18,7 @@ trait Model[In[_], Out[_]] extends Serializable {
   /**
    * Parameters must form a representable vector space.
    */
-  implicit val space: Representable[Params]
+  implicit val params: Representable[Params]
 
   /**
    * Applies the model to some input.
@@ -57,33 +57,33 @@ trait Model[In[_], Out[_]] extends Serializable {
   def restrict[A](data: Seq[(In[A], Out[A])], costFun: CostFun[In, Out])
       (implicit a: Floating[A], inFunctor: Functor[In], outFunctor: Functor[Out]): Subspace[Params] = {
     val keys = data
-      .map(convertSample[A, Reflector[space.Key]])
-      .map(sample => space.reflect(inst => costFun.scoreSample(Sample[In[Reflector[space.Key]], Out[Reflector[space.Key]]](
+      .map(convertSample[A, Reflector[params.Key]])
+      .map(sample => params.reflect(inst => costFun.scoreSample(Sample[In[Reflector[params.Key]], Out[Reflector[params.Key]]](
         input = sample._1,
         expected = sample._2,
         actual = apply(inst)(sample._1)
       ))))
       .reduce(_ ++ _)
-    space.restrict(keys)
+    params.restrict(keys)
   }
 
   def restrictRDD[A](data: RDD[(In[A], Out[A])], costFun: CostFun[In, Out])
       (implicit a: Floating[A], inFunctor: Functor[In], outFunctor: Functor[Out]) = {
     val keys = data
-      .map(convertSample[A, Reflector[space.Key]])
-      .map(sample => space.reflect(inst => costFun.scoreSample(Sample[In[Reflector[space.Key]], Out[Reflector[space.Key]]](
+      .map(convertSample[A, Reflector[params.Key]])
+      .map(sample => params.reflect(inst => costFun.scoreSample(Sample[In[Reflector[params.Key]], Out[Reflector[params.Key]]](
         input = sample._1,
         expected = sample._2,
         actual = apply(inst)(sample._1)
       ))))
       .reduce(_ ++ _)
-    space.restrict(keys)
+    params.restrict(keys)
   }
 }
 
 trait ParameterlessModel[In[_], Out[_]] extends Model[In, Out] {
   final override type Params[A] = Unit
-  final override val space = Cartesian.Zero
+  final override val params = Cartesian.Zero
   final override def apply[A](inst: Unit)(in: In[A])(implicit a: Analytic[A]): Out[A] = apply(in)
 
   def apply[A](in: In[A])(implicit a: Analytic[A]): Out[A]

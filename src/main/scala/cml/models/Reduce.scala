@@ -12,7 +12,7 @@ final case class Reduce[F[_], R[_]] (
 ) extends Model[({type T[A] = F[R[A]]})#T, R] {
   type Params[A] = m.Params[A]
 
-  override implicit val space = m.space
+  override implicit val params = m.params
 
   override def apply[A](inst: Params[A])(input: F[R[A]])(implicit a: Analytic[A]): R[A] =
     foldable.fold1(input)(new Semigroup[R[A]] {

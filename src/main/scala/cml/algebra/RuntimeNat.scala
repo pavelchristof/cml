@@ -6,6 +6,7 @@ import shapeless.ops.nat.ToInt
 trait RuntimeNat extends Serializable {
   type Type <: Nat
   def apply(): ToInt[Type]
+  val value: Int
 }
 
 object RuntimeNat {
@@ -15,6 +16,7 @@ object RuntimeNat {
     override def apply(): ToInt[Type] = new ToInt[Type] {
       override def apply(): Int = n
     }
+    override val value = n
   }
 }
 
