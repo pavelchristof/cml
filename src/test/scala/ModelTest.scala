@@ -4,7 +4,6 @@ import cml.models._
 import cml.optimization._
 import Cartesian._
 import Floating._
-import org.apache.spark.{SparkContext, SparkConf}
 
 import scala.util.Random
 import scalaz._
@@ -42,10 +41,7 @@ object ModelTest extends App {
     }
   }
 
-  val sparkConf = new SparkConf().setAppName("ModelTest").setMaster("local[*]")
-  val sc = new SparkContext(sparkConf)
-
-  val data = sc.parallelize(Seq(
+  val data = Vector(
     Seq((1d, 1d)),
     Seq((2d, 0d)),
     Seq((3d, 0.5d)),
@@ -54,23 +50,19 @@ object ModelTest extends App {
     Seq((6d, 0d)),
     Seq((7d, 0.5d)),
     Seq((8d, 0d))
-  ))
+  )
 
   val optimizer = StochasticGradientDescent(
-    model,
     iterations = 1000,
     gradTrans = Stabilize.andThen(AdaGrad)
   )
 
   var rng = new Random()
-  val initialInst = optimizer.model.params.tabulate(_ => rng.nextDouble() * 2 - 1)
+  val initialInst = model.params.tabulate(_ => rng.nextDouble() * 2 - 1)
 
-  val learned = optimizer[Double](
-      data,
-      costFun,
-      initialInst)
+  val learned = optimizer(model)(data, costFun, initialInst)
 
   for (i <- 1 to 16) {
-    println(optimizer.model(learned)(i.toDouble))
+    println(model(learned)(i.toDouble))
   }
 }

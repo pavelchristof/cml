@@ -1,7 +1,6 @@
 package cml
 
 import cml.algebra._
-import org.apache.spark.rdd.RDD
 
 /**
  * Machine learning models expressible as a differentiable function, mapping some input to some output.
@@ -67,18 +66,6 @@ trait Model[In[_], Out[_]] extends Serializable {
     params.restrict(keys)
   }
 
-  def restrictRDD[A](data: RDD[(In[A], Out[A])], costFun: CostFun[In, Out])
-      (implicit a: Floating[A], inFunctor: Functor[In], outFunctor: Functor[Out]) = {
-    val keys = data
-      .map(convertSample[A, Reflector[params.Key]])
-      .map(sample => params.reflect(inst => costFun.scoreSample(Sample[In[Reflector[params.Key]], Out[Reflector[params.Key]]](
-        input = sample._1,
-        expected = sample._2,
-        actual = apply(inst)(sample._1)
-      ))))
-      .reduce(_ ++ _)
-    params.restrict(keys)
-  }
 }
 
 trait ParameterlessModel[In[_], Out[_]] extends Model[In, Out] {

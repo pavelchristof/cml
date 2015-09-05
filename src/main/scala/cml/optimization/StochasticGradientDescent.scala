@@ -2,35 +2,32 @@ package cml.optimization
 
 import cml._
 import cml.algebra._
-import org.apache.spark.rdd.RDD
 
 import scala.util.Random
 
-case class StochasticGradientDescent[In[_], Out[_]] (
-  model: Model[In, Out],
+case class StochasticGradientDescent (
   iterations: Int,
   gradTrans: GradTrans = Stabilize
-)(implicit
-  in: Functor[In],
-  out: Functor[Out]
-) extends Optimizer[In, Out] {
+) extends Optimizer {
 
-  def apply[A](
-    batchesRDD: RDD[Seq[(In[A], Out[A])]],
+  def apply[In[_], Out[_], A] (
+    model: Model[In, Out]
+  ) (
+    batches: Vector[Seq[(In[A], Out[A])]],
     costFun: CostFun[In, Out],
     initialInst: model.Params[A]
   )(implicit
     fl: Floating[A],
     cmp: Ordering[A],
-    diffEngine: ad.Engine
+    diffEngine: ad.Engine,
+    in: Functor[In],
+    out: Functor[Out]
   ): model.Params[A] = {
     import ClassTag1.asClassTag
     import diffEngine.zero
 
-    val batches = batchesRDD.collect().toVector
-
     // This is the largest subspace that we'll work with.
-    val subspace = model.restrictRDD(batchesRDD.flatMap(identity), costFun)
+    val subspace = model.restrict(batches.flatMap(identity), costFun)
     implicit val space = subspace.space
 
     // Prepare the cost function.
@@ -45,17 +42,17 @@ case class StochasticGradientDescent[In[_], Out[_]] (
       // Restrict the subspace further.
       val keys = data
         .map(sample => {
-          type R = Reflector[space.Key]
-          val converted = model.convertSample[A, R](sample)
-          space.reflect(inst => {
-            val sample = Sample(
-              input = converted._1,
-              expected = converted._2,
-              actual = model(subspace.inject(inst))(converted._1)
-            )
-            costFun.scoreSample(sample)
-          })
+        type R = Reflector[space.Key]
+        val converted = model.convertSample[A, R](sample)
+        space.reflect(inst => {
+          val sample = Sample(
+            input = converted._1,
+            expected = converted._2,
+            actual = model(subspace.inject(inst))(converted._1)
+          )
+          costFun.scoreSample(sample)
         })
+      })
         .reduce(_ ++ _)
       val batchSubspace = space.restrict(keys)
       implicit val batchSpace = batchSubspace.space

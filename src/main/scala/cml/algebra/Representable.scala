@@ -47,7 +47,7 @@ object Representable {
   import Zero1.asZero
 
   abstract class ProductBase[F[_], G[_]] (implicit val f: Representable[F], val g: Representable[G])
-    extends Linear.Product[F, G] with Representable[({type T[+A] = (F[A], G[A])})#T] {
+    extends Linear.Product[F, G] with Representable[({type T[A] = (F[A], G[A])})#T] {
     override type Key = Either[f.Key, g.Key]
 
     override def index[A](v: (F[A], G[A]))(k: Key)(implicit a: ClassTag[A]): A = k match {
@@ -80,7 +80,7 @@ object Representable {
   implicit def product[F[_], G[_]](implicit f: Representable[F], g: Representable[G]) = new Product[F, G]
 
   abstract class ComposeBase[F[_], G[_]] (implicit val f: Representable[F], val g: Representable[G])
-    extends Linear.Compose[F, G] with Representable[({type T[+A] = F[G[A]]})#T] {
+    extends Linear.Compose[F, G] with Representable[({type T[A] = F[G[A]]})#T] {
     override type Key = (f.Key, g.Key)
 
     override def index[A](v: F[G[A]])(k: Key)(implicit a: ClassTag[A]): A =
@@ -101,7 +101,7 @@ object Representable {
   }
 
   class Compose[F[_], G[_]] (implicit override val f: Representable[F], override val g: Representable[G])
-    extends ComposeBase[F, G] with Representable[({type T[+A] = F[G[A]]})#T] {
+    extends ComposeBase[F, G] with Representable[({type T[A] = F[G[A]]})#T] {
     override def restrict(keys: => Set[Key]) =
       new Subspace.Compose(f.restrict(keys.map(_._1)), g.restrict(keys.map(_._2)))
   }

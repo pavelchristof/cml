@@ -3,20 +3,16 @@ organization := "cml"
 
 name := "cml"
 
-version := "0.2.0-SNAPSHOT"
+version := "0.3.0-RC1"
 
-scalaVersion := "2.10.5"
+scalaVersion := "2.11.7"
 
 resolvers ++= Seq(
-  Resolver.mavenLocal,
-  Resolver.sonatypeRepo("releases"),
-  Resolver.sonatypeRepo("snapshots")
+  Resolver.sonatypeRepo("releases")
 )
 
 libraryDependencies ++= Seq(
-  "com.chuusai" %% "shapeless" % "2.2.0-RC6",
-  "org.scalaz" %% "scalaz-core" % "7.2.0-SNAPSHOT",
-  "org.scalacheck" %% "scalacheck" % "1.12.2" % "test",
-  "org.apache.spark" %% "spark-core" % "1.3.0" % "provided",
-  "org.apache.spark" %% "spark-core" % "1.3.0" % "test"
+  "com.chuusai" %% "shapeless" % "2.2.5",
+  "org.scalaz" %% "scalaz-core" % "7.1.3",
+  "org.scalacheck" %% "scalacheck" % "1.12.2" % "test"
 )
